@@ -4,7 +4,7 @@ BiteCast is a standalone browser for San Diego-area half-day sportfishing result
 
 The historical site includes every available SanDiegoFishReports `1/2 Day AM` and `1/2 Day PM` row from January 1, 2024 through August 31, 2026. It covers 27 boats at five landings in San Diego and Oceanside. Kept and released fish remain separate in the embedded data, while the main encounter metric includes both.
 
-The Forecast tab includes a boat dropdown synchronized with the Historical boat filter. Dolphin uses the validated model. Other boats use a clearly labeled provisional transfer of the Dolphin weather pattern shifted to the selected boat's recent 12-trip AM/PM encounter level; those transfers are not independently validated.
+The Forecast tab includes a boat dropdown synchronized with the Historical boat filter. Dolphin uses the validated model. Other boats use a clearly labeled provisional transfer of the Dolphin weather pattern shifted to the selected boat's recent 12-trip AM/PM encounter level; those transfers are not independently validated. Beneath the daily cards, a seven-day timeline stacks rounded light-AM and dark-PM encounter-per-angler bars for the selected boat.
 
 ## Open or publish the site
 
