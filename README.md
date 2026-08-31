@@ -1,10 +1,10 @@
 # BiteCast
 
-BiteCast is a standalone browser for San Diego-area half-day sportfishing results and a weather-first Dolphin AM/PM forecast.
+BiteCast is a standalone browser for San Diego-area half-day sportfishing results and weather-first AM/PM forecasts.
 
 The historical site includes every available SanDiegoFishReports `1/2 Day AM` and `1/2 Day PM` row from January 1, 2024 through August 31, 2026. It covers 27 boats at five landings in San Diego and Oceanside. Kept and released fish remain separate in the embedded data, while the main encounter metric includes both.
 
-The forecast remains Dolphin-specific. Other boats are historical-only until each has enough observations for its own chronological, leak-free validation.
+The Forecast tab includes a boat dropdown synchronized with the Historical boat filter. Dolphin uses the validated model. Other boats use a clearly labeled provisional transfer of the Dolphin weather pattern shifted to the selected boat's recent 12-trip AM/PM encounter level; those transfers are not independently validated.
 
 ## Open or publish the site
 
@@ -32,7 +32,8 @@ Historical filters include species, boat, landing, year, AM/PM, and date range. 
 
 ## Forecast and validation
 
-- Published forecast boat: Dolphin, Fisherman's Landing
+- Validated forecast boat: Dolphin, Fisherman's Landing
+- Provisional selectable forecasts: every other boat with reported half-day history
 - Historical coastal weather: NOAA NDBC station LJAC1
 - Historical nearshore waves: NOAA NDBC station 46235
 - Seven-day inputs: NWS SGX marine forecast gridpoint 53,12
@@ -41,7 +42,7 @@ The weather-first model uses wind, gusts, pressure and pressure change, air and 
 
 Validation is rolling-origin and strictly chronological. Before each 2025–2026 Dolphin fishing day, the model is refit using every earlier Dolphin trip; all trips on the forecast day remain unseen. Current validation covers 781 unseen trips with MAE 2.06 encounters per angler, RMSE 2.88, and correlation 0.32; 60% are within ±2.0 encounters per angler.
 
-Each forecast includes two asymmetric ranges derived from signed `actual − forecast` residuals. The dark typical band uses the 25th–75th percentiles; the light planning band uses the 10th–90th percentiles. Calibration uses the latest 250 prior residuals for AM or PM, falls back to pooled residuals when needed, and clamps displayed lower bounds at zero.
+The Dolphin forecast includes two asymmetric ranges derived from signed `actual − forecast` residuals. The dark typical band uses the 25th–75th percentiles; the light planning band uses the 10th–90th percentiles. Calibration uses the latest 250 prior residuals for AM or PM, falls back to pooled residuals when needed, and clamps displayed lower bounds at zero. Other boats inherit shifted Dolphin bands as provisional planning guides, not calibrated boat-specific confidence intervals.
 
 ## Keeping BiteCast current
 
