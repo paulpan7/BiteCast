@@ -32,6 +32,8 @@ Historical filters include species, boat, landing, year, AM/PM, and date range. 
 
 The default **Trending** tab provides selectable 7-, 30-, 60-, and 90-day views. It ranks the eight most-reported species for the selected window and draws a daily light-AM/dark-PM bar chart for each. A second chart ranks the ten highest-producing boats with AM and PM shown separately on the same scale. All totals include kept and released encounters; missing reports remain missing rather than confirmed zero-catch days.
 
+The **Analysis** tab compares catch with observed weather. Its eight-species selector contains the seven highest-volume species plus Yellowtail, so Yellowtail analysis remains available even when it falls outside the overall volume leaders. A shared weather selector controls both a catch/weather time series and a fish-count scatter plot for water temperature, air temperature, pressure, or swell height. Date-range and AM/PM filters update both plots together. The scatter plot reports Pearson correlation `r`, linear `R²`, direction, and the number of matched date/AM-PM observations. Catch is aggregated across boats before joining weather so a single weather window is not duplicated once per boat. Correlation is descriptive and may include seasonal effects; it is not evidence that weather caused the catch.
+
 ## Forecast and validation
 
 - Validated forecast boat: Dolphin, Fisherman's Landing
