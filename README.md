@@ -30,6 +30,8 @@ To publish with GitHub Pages:
 
 Historical filters include species, boat, landing, year, AM/PM, and date range. Species is a dropdown populated from the embedded archive.
 
+The default **Trending** tab provides selectable 7-, 30-, 60-, and 90-day views. It ranks the eight most-reported species for the selected window and draws a daily light-AM/dark-PM bar chart for each. A second chart ranks the ten highest-producing boats with AM and PM shown separately on the same scale. All totals include kept and released encounters; missing reports remain missing rather than confirmed zero-catch days.
+
 ## Forecast and validation
 
 - Validated forecast boat: Dolphin, Fisherman's Landing
