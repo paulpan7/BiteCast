@@ -52,6 +52,8 @@ The per-boat model uses sea-surface temperature, swell height, signed NOAA half-
 
 Validation is strictly chronological. The validation fit uses 2018–2024 weather-matched trips, then faces 2025–2026 trips that were never used for fitting. Boats with at least 20 matched training trips use a boat-specific validation fit. Other boats use the shared fleet fit. The page computes and displays fleet holdout MAE, RMSE, within-±2 coverage, and interval coverage from the embedded data when it loads. LJAC1 observations extend through the full archive; station 46235 wave history begins in 2018, so 2017 contributes to catch history but not the swell-based model fit.
 
+In the page's plain-language accuracy guide, **holdout** means later trips set aside as a closed-book test, **MAE** is the average forecast miss in fish per angler, **RMSE** is an error score that penalizes large misses more heavily, and **within ±2 fish** is the percentage of forecasts within 2 fish per angler of the actual result.
+
 Forecasts include two asymmetric ranges derived from signed `actual − forecast` holdout residuals. The dark typical band uses the 25th–75th percentiles; the light planning band uses the 10th–90th percentiles. A boat's own residuals are used after 30 unseen trips; otherwise the validated fleet residual distribution supplies the range. Displayed lower bounds are clamped at zero.
 
 ## Model freeze and prospective validation
