@@ -28,6 +28,7 @@ INDEX = ROOT / "index.html"
 CACHE = ROOT / "data" / "cache"
 FISH_CACHE = CACHE / "fish"
 NOAA_CACHE = CACHE / "noaa"
+MODEL_FREEZE_MARKER = ROOT / "data" / "validation" / "MODEL_FROZEN.json"
 BASE = "https://www.sandiegofishreports.com/dock_totals/boats.php"
 USER_AGENT = "BiteCast historical research refresh/1.0"
 TIDE_STATION = "9410170"
@@ -47,6 +48,18 @@ NAME_MAP = {
     "Barred Sand Bass": "Sand Bass",
     "California Yellowtail": "Yellowtail",
 }
+
+
+def require_model_updates_unfrozen() -> None:
+    """Block any index mutation while prospective validation is active."""
+    if MODEL_FREEZE_MARKER.exists():
+        freeze = json.loads(MODEL_FREEZE_MARKER.read_text(encoding="utf-8"))
+        raise SystemExit(
+            "BiteCast model updates are frozen by data/validation/MODEL_FROZEN.json "
+            f"(training data through {freeze.get('trainingDataThrough', 'the frozen cutoff')}). "
+            "Use --download-only to collect source pages without changing index.html. "
+            "Do not remove the freeze until the user explicitly requests model updates to resume."
+        )
 
 
 def daterange(start: dt.date, end: dt.date):
@@ -430,6 +443,8 @@ def main() -> None:
     parser.add_argument("--enrich-tides-only", action="store_true")
     parser.add_argument("--refresh-weather-only", action="store_true")
     args = parser.parse_args()
+    if not args.download_only:
+        require_model_updates_unfrozen()
     if args.apply_exclusions_only:
         db = apply_source_exclusions(INDEX.read_text(encoding="utf-8"))
         print(json.dumps(db["stats"], indent=2), flush=True)

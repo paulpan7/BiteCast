@@ -1,0 +1,8 @@
+{
+  "status": "frozen",
+  "frozenAt": "2026-09-01",
+  "trainingDataThrough": "2026-08-30",
+  "reason": "Prospective validation against future reported catches",
+  "retrainingAllowed": false,
+  "releaseCondition": "Remove this freeze only after an explicit user command to resume model updates."
+}

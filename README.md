@@ -6,7 +6,7 @@ The historical site includes usable SanDiegoFishReports `1/2 Day AM` and `1/2 Da
 
 The former 7-day Forecast view is archived from the navigation for now, while its model, data, and interface remain in the page for future reuse. Every boat uses a chronologically validated weather model: boats with sufficient history receive an independent fit, while sparse-history boats use the validated shared fleet fit.
 
-The BiteCast tab ranks up to five active, sufficiently sampled boats and recommends each boat's better AM or PM half-day. Users can filter Charter and Party boats; Charter is assigned when fewer than 10 anglers were reported on more than half of that boat's historical trips. The species selector is limited to the 16 highest-volume species. Three traditional monthly heatmap calendars appear side by side, each with a month title and Monday-through-Sunday columns; hovering a day shows its best modeled encounter rate. Calendar colors use five numeric encounter bands held fixed across the full six-month outlook, with narrower bands at the low end for useful separation. Selecting a day updates a detailed color-coded chart with the point estimate, typical 50% range, and wider planning 80% range. Arrows move three months at a time across a six-month outlook. Days 1–7 use the live NWS marine forecast, while later dates use NOAA seasonal median water temperature and swell near that calendar date as model inputs. The latter is labeled as a seasonal-weather outlook rather than a live weather forecast.
+The BiteCast tab ranks up to five active, sufficiently sampled boats and recommends each boat's better AM or PM half-day. Users can filter Charter and Party boats; Charter is assigned when fewer than 10 anglers were reported on more than half of that boat's historical trips. The species selector is limited to the 16 highest-volume species. Three traditional monthly heatmap calendars appear side by side, each with a month title and Monday-through-Sunday columns; hovering a day shows its best modeled encounter rate. Calendar colors use five numeric encounter bands held fixed across the full six-month outlook, with narrower bands at the low end for useful separation. Selecting a day updates a detailed color-coded chart with the point estimate, typical 50% range, and wider planning 80% range. Arrows move three months at a time across a six-month outlook. Days 1–7 use the live NWS marine forecast, while later dates use NOAA seasonal median water temperature and swell near that calendar date as model inputs. Every date uses NOAA CO-OPS San Diego station 9410170 hourly tide predictions summarized as the total tide swing in the matching AM or PM half-day. The later weather component is labeled as a seasonal-weather outlook rather than a live weather forecast.
 
 ## Open or publish the site
 
@@ -48,20 +48,30 @@ The **Analysis** tab compares catch with observed weather and half-day tide swin
 - Historical nearshore waves: NOAA NDBC station 46235
 - Seven-day inputs: NWS SGX marine forecast gridpoint 53,12
 
-The per-boat weather model uses sea-surface temperature, swell height, AM/PM, and that boat's recent 12-trip encounter state. It does not use month, season, day-of-year, or year as a predictor. Regularization limits overfitting; encounters per angler are capped at 20 during fitting so isolated extreme reports cannot dominate the forecast.
+The per-boat model uses sea-surface temperature, swell height, NOAA half-day tide swing, AM/PM, and that boat's recent 12-trip catch state. It does not use month, season, day-of-year, or year as a predictor. Inputs are scaled and their coefficients are learned from training trips; they are not assigned fixed percentage weights. Ridge regularization with λ = 12 shrinks weak or noisy effects toward zero, and fish per angler is capped at 20 during fitting so isolated extreme reports cannot dominate the forecast. In the chronological fleet test, adding the linear tide-swing term left MAE at 2.0502 fish per angler and slightly improved RMSE from 2.7112 to 2.7107, so tide remains a deliberately low-influence feature.
 
 Validation is strictly chronological. The validation fit uses 2018–2024 weather-matched trips, then faces 2025–2026 trips that were never used for fitting. Boats with at least 20 matched training trips use a boat-specific validation fit. Other boats use the shared fleet fit. The page computes and displays fleet holdout MAE, RMSE, within-±2 coverage, and interval coverage from the embedded data when it loads. LJAC1 observations extend through the full archive; station 46235 wave history begins in 2018, so 2017 contributes to catch history but not the swell-based model fit.
 
 Forecasts include two asymmetric ranges derived from signed `actual − forecast` holdout residuals. The dark typical band uses the 25th–75th percentiles; the light planning band uses the 10th–90th percentiles. A boat's own residuals are used after 30 unseen trips; otherwise the validated fleet residual distribution supplies the range. Displayed lower bounds are clamped at zero.
 
-## Keeping BiteCast current
+## Model freeze and prospective validation
 
-`index.html` is static, so it does not update by itself. The recommended production setup is a scheduled GitHub Actions refresh once daily after dock totals normally settle:
+The BiteCast model and embedded training data are frozen at reports through August 30, 2026. They must remain unchanged until the user explicitly requests model updates to resume. `data/validation/MODEL_FROZEN.json` is the repository guard; `scripts/extend_history.py` refuses any operation that would modify `index.html` while that marker exists. Source pages may still be collected with `--download-only`, and prospective validation may read them without merging them into the site or retraining.
+
+Forecasts for September 1–28, 2026 are preserved in `data/validation/frozen_forecasts_2026-09-01_2026-09-28.json`. After the window closes, run:
+
+```bash
+python3 scripts/validate_frozen_forecast.py data/validation/frozen_forecasts_2026-09-01_2026-09-28.json
+```
+
+The comparison aggregates multiple same-boat/period reports by anglers, then reports MAE, RMSE, signed bias, angler-weighted MAE, within-1 and within-2 accuracy, and 50%/80% interval coverage. It writes a separate validation report and never changes the frozen model.
+
+When model updates are explicitly resumed, the refresh process should:
 
 1. Re-scrape at least the latest 14 SanDiegoFishReports days, not only yesterday. This captures late reports and corrections.
 2. Merge using a stable fingerprint of date, boat, landing, period, anglers, and species counts. Replace corrected rows instead of simply appending them.
 3. Refresh completed NOAA observations and the current NWS seven-day forecast grid.
-4. Recompute each boat/period's recent encounter state, retrain, and rerun chronological validation.
+4. Recompute each boat/period's recent catch state, retrain, and rerun chronological validation.
 5. Rebuild `index.html` and publish only if quality checks pass.
 
 Recommended publishing guardrails:
@@ -81,6 +91,9 @@ For a boat-specific model, use a rolling training window only if walk-forward te
 BiteCast/
 ├── index.html                 # Complete deployable site and embedded dataset
 ├── scripts/extend_history.py # Resumable historical fish/NOAA importer
+├── scripts/freeze_forecast_snapshot.js # Creates an immutable forecast baseline
+├── scripts/validate_frozen_forecast.py # Scores later reports without retraining
+├── data/validation/           # Freeze marker, forecast snapshot, and reports
 └── README.md                  # Hosting, source, validation, and refresh policy
 ```
 
