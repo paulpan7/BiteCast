@@ -12,6 +12,8 @@ The BiteCast tab ranks up to five active, sufficiently sampled boats and recomme
 
 Open `index.html` directly in a modern browser. The complete dataset, charts, filters, and forecast interface are embedded in that file, so the site works without a server or external JavaScript dependencies.
 
+The interface adapts to phone and tablet screens: filters stack into one column, calendar months stack vertically, navigation remains swipeable, and wide charts scroll inside their cards without widening the page.
+
 To publish with GitHub Pages:
 
 1. Push this directory to a GitHub repository.
