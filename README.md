@@ -44,11 +44,11 @@ The **Analysis** tab compares catch with observed weather and half-day tide swin
 - Sparse-history policy: use the chronologically validated shared fleet model
 - Historical coastal weather: NOAA NDBC station LJAC1
 - Fallback swell and sea temperature: NOAA NDBC station 46225
-- Half-day predicted tide swing: NOAA CO-OPS San Diego station 9410170
+- Signed half-day predicted tide change: NOAA CO-OPS San Diego station 9410170
 - Historical nearshore waves: NOAA NDBC station 46235
 - Seven-day inputs: NWS SGX marine forecast gridpoint 53,12
 
-The per-boat model uses sea-surface temperature, swell height, NOAA half-day tide swing, AM/PM, and that boat's recent 12-trip catch state. It does not use month, season, day-of-year, or year as a predictor. Inputs are scaled and their coefficients are learned from training trips; they are not assigned fixed percentage weights. Ridge regularization with λ = 12 shrinks weak or noisy effects toward zero, and fish per angler is capped at 20 during fitting so isolated extreme reports cannot dominate the forecast. In the chronological fleet test, adding the linear tide-swing term left MAE at 2.0502 fish per angler and slightly improved RMSE from 2.7112 to 2.7107, so tide remains a deliberately low-influence feature.
+The per-boat model uses sea-surface temperature, swell height, signed NOAA half-day tide change, AM/PM, and that boat's recent 12-trip catch state. Tide change is the predicted level at the end of the half-day minus the level at its start: positive is rising and negative is falling. The model does not use month, season, day-of-year, or year as a predictor. Inputs are scaled and their coefficients are learned from training trips; they are not assigned fixed percentage weights. Ridge regularization with λ = 12 shrinks weak or noisy effects toward zero, and fish per angler is capped at 20 during fitting so isolated extreme reports cannot dominate the forecast. In the chronological fleet test, the signed tide term has low influence: MAE is 2.0529 and RMSE is 2.7142 fish per angler, versus 2.0502 and 2.7112 without tide.
 
 Validation is strictly chronological. The validation fit uses 2018–2024 weather-matched trips, then faces 2025–2026 trips that were never used for fitting. Boats with at least 20 matched training trips use a boat-specific validation fit. Other boats use the shared fleet fit. The page computes and displays fleet holdout MAE, RMSE, within-±2 coverage, and interval coverage from the embedded data when it loads. LJAC1 observations extend through the full archive; station 46235 wave history begins in 2018, so 2017 contributes to catch history but not the swell-based model fit.
 

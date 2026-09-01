@@ -7,9 +7,9 @@ const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const dbStart = html.indexOf('const DB=') + 9;
 const dbEnd = html.indexOf(';\n', dbStart);
 const DB = JSON.parse(html.slice(dbStart, dbEnd));
-const tideMatch = html.match(/forecastTideSwings=(\[.*?\]);\nfunction forecastTideSwing/s);
+const tideMatch = html.match(/forecastTideDeltas=(\[.*?\]);\nfunction forecastTideDelta/s);
 if (!tideMatch) throw new Error('Embedded forecast tide series was not found.');
-const tideSwings = JSON.parse(tideMatch[1]);
+const tideDeltas = JSON.parse(tideMatch[1]);
 
 const startDate = DB.forecast[0].date;
 const startSerial = Date.parse(startDate + 'T12:00:00') / 864e5;
@@ -28,7 +28,7 @@ const median = values => {
 function features(row) {
   const water = (row.waterTempF - 65) / 10;
   const swell = (row.swellFt - 3) / 3;
-  const tide = (row.tideSwingFt - 2.5) / 2.5;
+  const tide = row.tideDeltaFt / 4;
   const pm = row.period === 'PM' ? 1 : 0;
   const recent = Math.min(20, row.recent12 || 0) / 5;
   return [1, water, water * water, swell, swell * swell, pm, recent, pm * water, tide];
@@ -65,11 +65,11 @@ const queues = new Map();
 const trainingRows = [];
 for (const trip of [...DB.trips].sort((a, b) => a.date.localeCompare(b.date) || a.period.localeCompare(b.period))) {
   const weather = weatherByWindow.get(`${trip.date}|${trip.period}`);
-  if (!weather || !Number.isFinite(weather.waterTempF) || !Number.isFinite(weather.swellFt) || !Number.isFinite(weather.tideSwingFt)) continue;
+  if (!weather || !Number.isFinite(weather.waterTempF) || !Number.isFinite(weather.swellFt) || !Number.isFinite(weather.tideDeltaFt)) continue;
   const key = `${trip.boat}|${trip.period}`;
   const queue = queues.get(key) || [];
   const recent12 = queue.length ? queue.reduce((sum, value) => sum + value, 0) / queue.length : DB.boatProfiles[trip.boat].recent12;
-  trainingRows.push({boat: trip.boat, date: trip.date, period: trip.period, waterTempF: weather.waterTempF, swellFt: weather.swellFt, tideSwingFt: weather.tideSwingFt, recent12, y: Math.min(20, trip.epa)});
+  trainingRows.push({boat: trip.boat, date: trip.date, period: trip.period, waterTempF: weather.waterTempF, swellFt: weather.swellFt, tideDeltaFt: weather.tideDeltaFt, recent12, y: Math.min(20, trip.epa)});
   queue.push(Math.min(20, trip.epa));
   if (queue.length > 12) queue.shift();
   queues.set(key, queue);
@@ -132,10 +132,10 @@ for (const day of forecastDays) {
     const weight = Math.min(1, periodProfile.n / 12);
     const periodRecent = periodProfile.recent12 ?? profile.recent12;
     const recent12 = weight * periodRecent + (1 - weight) * profile.recent12;
-    const tideSwingFt = tideSwings[tideIndex][period.period === 'PM' ? 1 : 0];
-    const row = {period: period.period, waterTempF: period.sstF, swellFt: period.seasFt ?? 3, tideSwingFt, recent12};
+    const tideDeltaFt = tideDeltas[tideIndex][period.period === 'PM' ? 1 : 0];
+    const row = {period: period.period, waterTempF: period.sstF, swellFt: period.seasFt ?? 3, tideDeltaFt, recent12};
     const point = predict(models[boat], row), residuals = residualsByBoat[boat].length >= 30 ? residualsByBoat[boat] : fleetResiduals;
-    predictions.push({date: day.date, boat, period: period.period, predictedFishPerAngler: +point.toFixed(4), typicalLow: +Math.max(0, point + quantile(residuals, .25)).toFixed(4), typicalHigh: +Math.max(0, point + quantile(residuals, .75)).toFixed(4), planningLow: +Math.max(0, point + quantile(residuals, .1)).toFixed(4), planningHigh: +Math.max(0, point + quantile(residuals, .9)).toFixed(4), waterTempF: +row.waterTempF.toFixed(3), swellFt: +row.swellFt.toFixed(3), tideSwingFt, weatherSource: day.source});
+    predictions.push({date: day.date, boat, period: period.period, predictedFishPerAngler: +point.toFixed(4), typicalLow: +Math.max(0, point + quantile(residuals, .25)).toFixed(4), typicalHigh: +Math.max(0, point + quantile(residuals, .75)).toFixed(4), planningLow: +Math.max(0, point + quantile(residuals, .1)).toFixed(4), planningHigh: +Math.max(0, point + quantile(residuals, .9)).toFixed(4), waterTempF: +row.waterTempF.toFixed(3), swellFt: +row.swellFt.toFixed(3), tideDeltaFt, weatherSource: day.source});
   }
 }
 
@@ -146,7 +146,7 @@ const snapshot = {
   validationStart: startDate,
   validationEnd: dateAt(27),
   retrainingAllowedDuringWindow: false,
-  featureOrder: ['intercept', 'waterTemp', 'waterTempSquared', 'swell', 'swellSquared', 'PM', 'recent12', 'PMxWaterTemp', 'tideSwing'],
+  featureOrder: ['intercept', 'waterTemp', 'waterTempSquared', 'swell', 'swellSquared', 'PM', 'recent12', 'PMxWaterTemp', 'tideChange'],
   ridgeLambda: 12,
   eligibleBoats: boats,
   predictions
