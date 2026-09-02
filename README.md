@@ -60,7 +60,7 @@ Forecasts include 2 asymmetric ranges derived from signed `actual − forecast` 
 
 The BiteCast model and embedded training data are frozen at reports through August 30, 2026. They must remain unchanged until the user explicitly requests model updates to resume. `data/validation/MODEL_FROZEN.json` is the repository guard; `scripts/extend_history.py` refuses any operation that would modify the historical database or retrain while that marker exists.
 
-Actual fish counts still refresh nightly for prospective validation. `.github/workflows/sync-validation-actuals.yml` re-reads the latest 14 report days, writes `data/validation/latest_actuals.json`, and updates only the small embedded `MODEL_ACTUALS` payload used by the Data & Methods “Model vs. actual” chart. The chart offers Last 7 days and Last 14 days views. This job never changes the model, training rows, boat profiles, or frozen forecast snapshot.
+Actual fish counts refresh at 1:00 PM, 7:00 PM, and 11:59 PM Pacific for prospective validation. `.github/workflows/sync-validation-actuals.yml` re-reads the latest 14 report days, retains all new trip rows beginning August 31 in `data/validation/post_freeze_fish_counts.json`, writes `data/validation/latest_actuals.json`, and updates only the small embedded `MODEL_ACTUALS` payload used by the Data & Methods “Model vs. actual” chart. The chart offers Last 7 days and Last 14 days views beginning with the September 1 frozen forecasts. This job never changes the model, training rows, boat profiles, or frozen forecast snapshot.
 
 Forecasts for September 1–28, 2026 are preserved in `data/validation/frozen_forecasts_2026-09-01_2026-09-28.json`. The nightly actual-count refresh can also be run locally without retraining:
 

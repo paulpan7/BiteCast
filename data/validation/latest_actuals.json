@@ -4,16 +4,82 @@
   "trainingDataThrough": "2026-08-30",
   "validationStart": "2026-09-01",
   "validationEnd": "2026-09-28",
-  "evaluatedThrough": null,
-  "syncedAt": null,
+  "actualDataStart": "2026-08-31",
+  "actualDataThrough": "2026-09-01",
+  "evaluatedThrough": "2026-09-01",
+  "syncedAt": "2026-09-02T05:33:45.560657Z",
   "sourceDaysRefreshed": 14,
-  "downloadedTrips": 0,
-  "downloadedFish": 0,
-  "downloadedAnglers": 0,
+  "downloadedTrips": 8,
+  "downloadedFish": 491,
+  "downloadedAnglers": 275,
   "modelWasRetrained": false,
   "overall": {
-    "matchedWindows": 0
+    "matchedWindows": 3,
+    "anglers": 149,
+    "mae": 0.882,
+    "rmse": 0.941,
+    "actualFishPerAngler": 1.9664,
+    "predictedFishPerAngler": 2.8396
   },
-  "daily": [],
-  "matches": []
+  "reportedDaily": [
+    {
+      "date": "2026-08-31",
+      "reports": 4,
+      "anglers": 126,
+      "fish": 198,
+      "fishPerAngler": 1.5714
+    },
+    {
+      "date": "2026-09-01",
+      "reports": 4,
+      "anglers": 149,
+      "fish": 293,
+      "fishPerAngler": 1.9664
+    }
+  ],
+  "daily": [
+    {
+      "date": "2026-09-01",
+      "matchedWindows": 3,
+      "anglers": 149,
+      "fish": 293,
+      "actualFishPerAngler": 1.9664,
+      "predictedFishPerAngler": 2.8396
+    }
+  ],
+  "matches": [
+    {
+      "date": "2026-09-01",
+      "boat": "Dolphin",
+      "period": "PM",
+      "reports": 2,
+      "anglers": 76,
+      "fish": 197,
+      "actualFishPerAngler": 2.5921,
+      "predictedFishPerAngler": 3.5117,
+      "error": -0.9196
+    },
+    {
+      "date": "2026-09-01",
+      "boat": "New Seaforth",
+      "period": "AM",
+      "reports": 1,
+      "anglers": 40,
+      "fish": 70,
+      "actualFishPerAngler": 1.75,
+      "predictedFishPerAngler": 2.2126,
+      "error": -0.4626
+    },
+    {
+      "date": "2026-09-01",
+      "boat": "New Seaforth",
+      "period": "PM",
+      "reports": 1,
+      "anglers": 33,
+      "fish": 26,
+      "actualFishPerAngler": 0.7879,
+      "predictedFishPerAngler": 2.0516,
+      "error": -1.2637
+    }
+  ]
 }

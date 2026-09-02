@@ -2,7 +2,10 @@ name: Sync frozen-model actuals
 
 on:
   schedule:
-    - cron: "30 08 * * *"
+    # September validation window: 1:00 PM, 7:00 PM, and 11:59 PM Pacific (PDT).
+    - cron: "00 20 * * *"
+    - cron: "00 02 * * *"
+    - cron: "59 06 * * *"
   workflow_dispatch:
 
 permissions:
@@ -26,6 +29,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/validation/latest_actuals.json index.html
+          git add data/validation/latest_actuals.json data/validation/post_freeze_fish_counts.json index.html
           git diff --cached --quiet || git commit -m "Refresh frozen model validation actuals"
           git push
