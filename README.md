@@ -62,6 +62,8 @@ The BiteCast model and embedded training data are frozen at reports through Augu
 
 Actual fish counts refresh at 1:00 PM, 7:00 PM, and 11:59 PM Pacific for prospective validation. `.github/workflows/sync-validation-actuals.yml` re-reads the latest 14 report days, retains all new trip rows beginning August 31 in `data/validation/post_freeze_fish_counts.json`, writes `data/validation/latest_actuals.json`, and updates only the small embedded `MODEL_ACTUALS` payload used by the Data & Methods “Model vs. actual” chart. The chart offers Last 7 days and Last 14 days views beginning with the September 1 frozen forecasts. This job never changes the model, training rows, boat profiles, or frozen forecast snapshot.
 
+Trending combines the frozen historical archive with the embedded post-freeze trip rows, so newly reported counts appear there immediately without entering model training. Species-level prospective validation splits each frozen total forecast using that boat and AM/PM window's pre-freeze historical species share near the same time of year. The interface labels this as a historical-mix estimate rather than a separately trained species forecast.
+
 Forecasts for September 1–28, 2026 are preserved in `data/validation/frozen_forecasts_2026-09-01_2026-09-28.json`. The nightly actual-count refresh can also be run locally without retraining:
 
 ```bash

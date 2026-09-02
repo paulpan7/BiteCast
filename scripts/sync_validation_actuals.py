@@ -39,6 +39,34 @@ def summarize(rows: list[dict]) -> dict:
     }
 
 
+def season_day(iso_date: str) -> int:
+    _, month, day = map(int, iso_date.split("-"))
+    return (dt.date(2000, month, day) - dt.date(2000, 1, 1)).days
+
+
+def historical_species_shares(rows: list[dict], iso_date: str) -> dict[str, float]:
+    target = season_day(iso_date)
+    nearby = []
+    for trip in rows:
+        gap = abs(season_day(trip["date"]) - target)
+        if min(gap, 366 - gap) <= 50:
+            nearby.append(trip)
+
+    def totals(trips: list[dict]) -> tuple[int, dict[str, int]]:
+        species = defaultdict(int)
+        total = 0
+        for trip in trips:
+            total += trip["encounters"]
+            for item in trip["species"]:
+                species[item["species"]] += item["kept"] + item["released"]
+        return total, species
+
+    total, species = totals(nearby)
+    if total < 100:
+        total, species = totals(rows)
+    return {name: round(count / total, 6) for name, count in species.items()} if total else {}
+
+
 def refresh_page(day: dt.date, use_cache: bool) -> Path:
     """Refresh recent source pages so late dock-total corrections are captured."""
     path = extend_history.FISH_CACHE / f"{day.isoformat()}.html"
@@ -88,7 +116,7 @@ def main() -> None:
     through = min(args.through or today, validation_end)
     predictions = {(row["date"], row["boat"], row["period"]): row for row in snapshot["predictions"]}
 
-    actual = defaultdict(lambda: {"fish": 0, "anglers": 0, "reports": 0})
+    actual = defaultdict(lambda: {"fish": 0, "anglers": 0, "reports": 0, "species": defaultdict(int)})
     observed_trips = []
     refreshed_dates = set()
     downloaded_trips = downloaded_fish = downloaded_anglers = 0
@@ -111,6 +139,8 @@ def main() -> None:
                     actual[key]["fish"] += trip["encounters"]
                     actual[key]["anglers"] += trip["anglers"]
                     actual[key]["reports"] += 1
+                    for item in trip["species"]:
+                        actual[key]["species"][item["species"]] += item["kept"] + item["released"]
 
     previous_archive = {"trips": []}
     if args.archive.exists():
@@ -129,6 +159,11 @@ def main() -> None:
     args.archive.parent.mkdir(parents=True, exist_ok=True)
     args.archive.write_text(json.dumps(archive, indent=2) + "\n", encoding="utf-8")
 
+    db, _, _ = extend_history.extract_db(INDEX.read_text(encoding="utf-8"))
+    history_by_window = defaultdict(list)
+    for trip in db["trips"]:
+        history_by_window[(trip["boat"], trip["period"])].append(trip)
+
     matches = []
     for key, totals in sorted(actual.items()):
         if not totals["anglers"]:
@@ -136,12 +171,17 @@ def main() -> None:
         prediction = predictions[key]
         actual_rate = totals["fish"] / totals["anglers"]
         predicted_rate = prediction["predictedFishPerAngler"]
+        shares = historical_species_shares(history_by_window[(key[1], key[2])], key[0])
         matches.append({
             "date": key[0], "boat": key[1], "period": key[2],
             "reports": totals["reports"], "anglers": totals["anglers"], "fish": totals["fish"],
             "actualFishPerAngler": round(actual_rate, 4),
             "predictedFishPerAngler": predicted_rate,
             "error": round(actual_rate - predicted_rate, 4),
+            "actualSpecies": dict(sorted(totals["species"].items())),
+            "predictedSpeciesFishPerAngler": {
+                name: round(predicted_rate * share, 4) for name, share in sorted(shares.items())
+            },
         })
 
     daily_groups = defaultdict(list)
@@ -190,6 +230,7 @@ def main() -> None:
         "modelWasRetrained": False,
         "overall": summarize(matches),
         "reportedDaily": reported_daily,
+        "reportedTrips": archived_trips,
         "daily": daily,
         "matches": matches,
     }
