@@ -58,9 +58,17 @@ Forecasts include 2 asymmetric ranges derived from signed `actual − forecast` 
 
 ## Model freeze and prospective validation
 
-The BiteCast model and embedded training data are frozen at reports through August 30, 2026. They must remain unchanged until the user explicitly requests model updates to resume. `data/validation/MODEL_FROZEN.json` is the repository guard; `scripts/extend_history.py` refuses any operation that would modify `index.html` while that marker exists. Source pages may still be collected with `--download-only`, and prospective validation may read them without merging them into the site or retraining.
+The BiteCast model and embedded training data are frozen at reports through August 30, 2026. They must remain unchanged until the user explicitly requests model updates to resume. `data/validation/MODEL_FROZEN.json` is the repository guard; `scripts/extend_history.py` refuses any operation that would modify the historical database or retrain while that marker exists.
 
-Forecasts for September 1–28, 2026 are preserved in `data/validation/frozen_forecasts_2026-09-01_2026-09-28.json`. After the window closes, run:
+Actual fish counts still refresh nightly for prospective validation. `.github/workflows/sync-validation-actuals.yml` re-reads the latest 14 report days, writes `data/validation/latest_actuals.json`, and updates only the small embedded `MODEL_ACTUALS` payload used by the Data & Methods “Model vs. actual” chart. The chart offers Last 7 days and Last 14 days views. This job never changes the model, training rows, boat profiles, or frozen forecast snapshot.
+
+Forecasts for September 1–28, 2026 are preserved in `data/validation/frozen_forecasts_2026-09-01_2026-09-28.json`. The nightly actual-count refresh can also be run locally without retraining:
+
+```bash
+python3 scripts/sync_validation_actuals.py --days 14 --embed-index
+```
+
+After the window closes, run the final validation report:
 
 ```bash
 python3 scripts/validate_frozen_forecast.py data/validation/frozen_forecasts_2026-09-01_2026-09-28.json

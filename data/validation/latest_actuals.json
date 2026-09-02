@@ -1,0 +1,19 @@
+{
+  "protocol": "prospective-4-week-holdout-v1",
+  "snapshotFrozenAt": "2026-09-01T14:07:56.674Z",
+  "trainingDataThrough": "2026-08-30",
+  "validationStart": "2026-09-01",
+  "validationEnd": "2026-09-28",
+  "evaluatedThrough": null,
+  "syncedAt": null,
+  "sourceDaysRefreshed": 14,
+  "downloadedTrips": 0,
+  "downloadedFish": 0,
+  "downloadedAnglers": 0,
+  "modelWasRetrained": false,
+  "overall": {
+    "matchedWindows": 0
+  },
+  "daily": [],
+  "matches": []
+}
