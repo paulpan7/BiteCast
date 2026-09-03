@@ -123,9 +123,14 @@ def clean(fragment: str) -> str:
 
 def parse_species(fragment: str) -> list[dict]:
     text = clean(fragment).replace("\n", " ")
+    # Commas serve two roles here: separating species entries ("18 Calico Bass,
+    # 4 Sculpin") and thousands-grouping large counts ("1,200 Sculpin"). Only the
+    # first kind is followed by whitespace, so protect digit-adjacent commas
+    # before splitting, then restore them for the count regex below.
+    protected = re.sub(r"(?<=\d),(?=\d)", "\0", text)
     merged: dict[str, list[int]] = {}
-    for item in text.split(","):
-        item = item.strip()
+    for item in protected.split(","):
+        item = item.replace("\0", ",").strip()
         released = bool(re.search(r"\sReleased\s*$", item, re.I))
         item = re.sub(r"\sReleased\s*$", "", item, flags=re.I)
         item = re.sub(r"\s*\([^)]*\)\s*", " ", item).strip()

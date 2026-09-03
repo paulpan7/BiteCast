@@ -14,6 +14,10 @@ Open `index.html` directly in a modern browser. The complete dataset, charts, fi
 
 The interface adapts to phone and tablet screens: filters stack into 1 column, calendar months stack vertically, navigation remains swipeable, and wide charts scroll inside their cards without widening the page.
 
+## Fleetcast boat tracks
+
+`scripts/shipfinder_playwright.py` is the PythonAnywhere nightly importer. Put the authoritative `boat_name,mmsi` file at the path in `FLEETCAST_MMSI_FILE` (or `data/fleetcast/mmsi.csv`), then schedule `python3 scripts/shipfinder_playwright.py` daily at 8:00 PM Pacific. The job applies a stable random delay through 11:30 PM, reuses the browser state named by `SHIPFINDER_AUTH_STATE`, and writes raw CSVs plus processed GeoJSON under `data/fleetcast/`. Copying that directory with the site makes the Boat tracks tab populate its boat dropdown and calendar date.
+
 To publish with GitHub Pages:
 
 1. Push this directory to a GitHub repository.
