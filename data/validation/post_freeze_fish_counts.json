@@ -1,7 +1,7 @@
 {
   "modelTrainingDataThrough": "2026-08-30",
   "actualDataStart": "2026-08-31",
-  "actualDataThrough": "2026-09-01",
+  "actualDataThrough": "2026-09-03",
   "modelWasRetrained": false,
   "trips": [
     {
@@ -301,6 +301,294 @@
       "released": 0,
       "encounters": 26,
       "epa": 0.788,
+      "tripNo": 1
+    },
+    {
+      "date": "2026-09-02",
+      "period": "AM",
+      "anglers": 25,
+      "source_url": "https://www.sandiegofishreports.com/dock_totals/boats.php?date=2026-09-02",
+      "boat": "Dolphin",
+      "boat_path": "/charter_boats/dolphin.php",
+      "landing": "Fisherman's Landing",
+      "landing_path": "/landings/fishermans_landing.php",
+      "city": "San Diego, CA",
+      "species": [
+        {
+          "species": "Sand Bass",
+          "kept": 4,
+          "released": 0
+        },
+        {
+          "species": "Halibut",
+          "kept": 1,
+          "released": 0
+        },
+        {
+          "species": "Sculpin",
+          "kept": 2,
+          "released": 0
+        },
+        {
+          "species": "Yellowtail",
+          "kept": 10,
+          "released": 0
+        },
+        {
+          "species": "Calico Bass",
+          "kept": 2,
+          "released": 0
+        },
+        {
+          "species": "Bonito",
+          "kept": 25,
+          "released": 0
+        }
+      ],
+      "kept": 44,
+      "released": 0,
+      "encounters": 44,
+      "epa": 1.76,
+      "tripNo": 1
+    },
+    {
+      "date": "2026-09-02",
+      "period": "AM",
+      "anglers": 29,
+      "source_url": "https://www.sandiegofishreports.com/dock_totals/boats.php?date=2026-09-02",
+      "boat": "New Seaforth",
+      "boat_path": "/charter_boats/newseaforth.php",
+      "landing": "Seaforth Sportfishing",
+      "landing_path": "/landings/seaforth_sportfishing.php",
+      "city": "San Diego, CA",
+      "species": [
+        {
+          "species": "Sand Bass",
+          "kept": 1,
+          "released": 0
+        },
+        {
+          "species": "Barracuda",
+          "kept": 1,
+          "released": 0
+        },
+        {
+          "species": "Sculpin",
+          "kept": 2,
+          "released": 0
+        },
+        {
+          "species": "Yellowtail",
+          "kept": 6,
+          "released": 0
+        },
+        {
+          "species": "Calico Bass",
+          "kept": 6,
+          "released": 0
+        },
+        {
+          "species": "Bonito",
+          "kept": 27,
+          "released": 0
+        },
+        {
+          "species": "Rockfish",
+          "kept": 3,
+          "released": 0
+        }
+      ],
+      "kept": 46,
+      "released": 0,
+      "encounters": 46,
+      "epa": 1.586,
+      "tripNo": 1
+    },
+    {
+      "date": "2026-09-02",
+      "period": "PM",
+      "anglers": 35,
+      "source_url": "https://www.sandiegofishreports.com/dock_totals/boats.php?date=2026-09-02",
+      "boat": "New Seaforth",
+      "boat_path": "/charter_boats/newseaforth.php",
+      "landing": "Seaforth Sportfishing",
+      "landing_path": "/landings/seaforth_sportfishing.php",
+      "city": "San Diego, CA",
+      "species": [
+        {
+          "species": "Sand Bass",
+          "kept": 1,
+          "released": 0
+        },
+        {
+          "species": "Barracuda",
+          "kept": 20,
+          "released": 0
+        },
+        {
+          "species": "Yellowtail",
+          "kept": 5,
+          "released": 0
+        },
+        {
+          "species": "Calico Bass",
+          "kept": 3,
+          "released": 0
+        },
+        {
+          "species": "Bonito",
+          "kept": 1,
+          "released": 0
+        }
+      ],
+      "kept": 30,
+      "released": 0,
+      "encounters": 30,
+      "epa": 0.857,
+      "tripNo": 1
+    },
+    {
+      "date": "2026-09-03",
+      "period": "AM",
+      "anglers": 25,
+      "source_url": "https://www.sandiegofishreports.com/dock_totals/boats.php?date=2026-09-03",
+      "boat": "Dolphin",
+      "boat_path": "/charter_boats/dolphin.php",
+      "landing": "Fisherman's Landing",
+      "landing_path": "/landings/fishermans_landing.php",
+      "city": "San Diego, CA",
+      "species": [
+        {
+          "species": "Sand Bass",
+          "kept": 4,
+          "released": 0
+        },
+        {
+          "species": "Halibut",
+          "kept": 1,
+          "released": 0
+        },
+        {
+          "species": "Sculpin",
+          "kept": 2,
+          "released": 0
+        },
+        {
+          "species": "Yellowtail",
+          "kept": 10,
+          "released": 0
+        },
+        {
+          "species": "Calico Bass",
+          "kept": 2,
+          "released": 0
+        },
+        {
+          "species": "Bonito",
+          "kept": 25,
+          "released": 0
+        }
+      ],
+      "kept": 44,
+      "released": 0,
+      "encounters": 44,
+      "epa": 1.76,
+      "tripNo": 1
+    },
+    {
+      "date": "2026-09-03",
+      "period": "AM",
+      "anglers": 29,
+      "source_url": "https://www.sandiegofishreports.com/dock_totals/boats.php?date=2026-09-03",
+      "boat": "New Seaforth",
+      "boat_path": "/charter_boats/newseaforth.php",
+      "landing": "Seaforth Sportfishing",
+      "landing_path": "/landings/seaforth_sportfishing.php",
+      "city": "San Diego, CA",
+      "species": [
+        {
+          "species": "Sand Bass",
+          "kept": 1,
+          "released": 0
+        },
+        {
+          "species": "Barracuda",
+          "kept": 1,
+          "released": 0
+        },
+        {
+          "species": "Sculpin",
+          "kept": 2,
+          "released": 0
+        },
+        {
+          "species": "Yellowtail",
+          "kept": 6,
+          "released": 0
+        },
+        {
+          "species": "Calico Bass",
+          "kept": 6,
+          "released": 0
+        },
+        {
+          "species": "Bonito",
+          "kept": 27,
+          "released": 0
+        },
+        {
+          "species": "Rockfish",
+          "kept": 3,
+          "released": 0
+        }
+      ],
+      "kept": 46,
+      "released": 0,
+      "encounters": 46,
+      "epa": 1.586,
+      "tripNo": 1
+    },
+    {
+      "date": "2026-09-03",
+      "period": "PM",
+      "anglers": 35,
+      "source_url": "https://www.sandiegofishreports.com/dock_totals/boats.php?date=2026-09-03",
+      "boat": "New Seaforth",
+      "boat_path": "/charter_boats/newseaforth.php",
+      "landing": "Seaforth Sportfishing",
+      "landing_path": "/landings/seaforth_sportfishing.php",
+      "city": "San Diego, CA",
+      "species": [
+        {
+          "species": "Sand Bass",
+          "kept": 1,
+          "released": 0
+        },
+        {
+          "species": "Barracuda",
+          "kept": 20,
+          "released": 0
+        },
+        {
+          "species": "Yellowtail",
+          "kept": 5,
+          "released": 0
+        },
+        {
+          "species": "Calico Bass",
+          "kept": 3,
+          "released": 0
+        },
+        {
+          "species": "Bonito",
+          "kept": 1,
+          "released": 0
+        }
+      ],
+      "kept": 30,
+      "released": 0,
+      "encounters": 30,
+      "epa": 0.857,
       "tripNo": 1
     }
   ]
