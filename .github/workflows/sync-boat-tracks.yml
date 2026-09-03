@@ -47,5 +47,22 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/fleetcast/bundle.json
-          git diff --cached --quiet || git commit -m "Refresh boat tracks bundle"
-          git push
+          if git diff --cached --quiet; then
+            echo "No changes to publish"
+            exit 0
+          fi
+          git commit -m "Refresh boat tracks bundle"
+          # main can move between this job's checkout and this push (an
+          # unrelated commit landing mid-run, or another trigger of this same
+          # workflow) -- rebase onto the latest and retry rather than losing
+          # the run's work outright.
+          for attempt in 1 2 3 4 5; do
+            if git push; then
+              exit 0
+            fi
+            echo "Push rejected (attempt $attempt/5), rebasing onto latest main and retrying..."
+            git fetch origin main
+            git rebase origin/main
+          done
+          echo "::error::Failed to push after 5 attempts"
+          exit 1
