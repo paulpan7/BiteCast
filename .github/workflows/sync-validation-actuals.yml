@@ -2,10 +2,9 @@ name: Sync frozen-model actuals
 
 on:
   schedule:
-    # September validation window: 1:00 PM, 7:00 PM, and 11:59 PM Pacific (PDT).
-    - cron: "00 20 * * *"
-    - cron: "00 02 * * *"
-    - cron: "59 06 * * *"
+    # September validation window: 3:00 PM and 9:00 PM Pacific (PDT).
+    - cron: "00 22 * * *"
+    - cron: "00 04 * * *"
   workflow_dispatch:
 
 permissions:

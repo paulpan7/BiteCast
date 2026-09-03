@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import unittest
 
-from extend_history import clean, fingerprint, parse_fish_page, parse_species
+from extend_history import clean, fingerprint, page_report_date, parse_fish_page, parse_species
 
 
 # A single day's report table, trimmed to the markup parse_fish_page actually
@@ -157,6 +157,23 @@ class FingerprintTests(unittest.TestCase):
         trip_a = {**base, "species": [{"species": "Calico Bass", "kept": 18, "released": 4}]}
         trip_b = {**base, "species": [{"species": "Calico Bass", "kept": 19, "released": 4}]}
         self.assertNotEqual(fingerprint(trip_a), fingerprint(trip_b))
+
+
+class PageReportDateTests(unittest.TestCase):
+    def test_extracts_date_from_meta_description(self):
+        raw = '<meta name="description" content="Individual boat fish counts for San Diego 1/2 Day Trips  - September 2, 2026">'
+        self.assertEqual(page_report_date(raw), "2026-09-02")
+
+    def test_single_digit_day(self):
+        raw = '<meta name="description" content="...1/2 Day Trips  - September 1, 2026">'
+        self.assertEqual(page_report_date(raw), "2026-09-01")
+
+    def test_missing_meta_returns_none(self):
+        self.assertIsNone(page_report_date("<html><body>no meta tag here</body></html>"))
+
+    def test_unparseable_date_returns_none(self):
+        raw = '<meta name="description" content="...1/2 Day Trips  - Not A Real Date">'
+        self.assertIsNone(page_report_date(raw))
 
 
 if __name__ == "__main__":

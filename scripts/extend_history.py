@@ -147,6 +147,27 @@ def parse_species(fragment: str) -> list[dict]:
     ]
 
 
+def page_report_date(raw: str) -> str | None:
+    """Return the ISO date the fetched page actually reports on, or None.
+
+    When the requested day has no report posted yet, SanDiegoFishReports
+    silently serves the most recent available day's page instead of an
+    empty one, with no indication in the visible content that it's stale.
+    Callers must compare this against the requested day before trusting
+    parse_fish_page's output, since parse_fish_page stamps every trip with
+    whatever day it's told rather than anything derived from the page.
+    """
+    match = re.search(
+        r'name="description"\s+content="[^"]*?-\s*([A-Za-z]+ \d{1,2}, \d{4})"', raw
+    )
+    if not match:
+        return None
+    try:
+        return dt.datetime.strptime(match.group(1), "%B %d, %Y").date().isoformat()
+    except ValueError:
+        return None
+
+
 def parse_fish_page(day: str, raw: str) -> list[dict]:
     report = raw.split("id='report-container'", 1)[-1]
     trips = []

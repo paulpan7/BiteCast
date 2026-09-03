@@ -119,14 +119,28 @@ def main() -> None:
     actual = defaultdict(lambda: {"fish": 0, "anglers": 0, "reports": 0, "species": defaultdict(int)})
     observed_trips = []
     refreshed_dates = set()
+    not_yet_posted = []
     downloaded_trips = downloaded_fish = downloaded_anglers = 0
     if through >= actual_start:
         source_start = max(actual_start, through - dt.timedelta(days=max(1, args.days) - 1))
         for offset in range((through - source_start).days + 1):
             day = source_start + dt.timedelta(days=offset)
-            refreshed_dates.add(day.isoformat())
             page = refresh_page(day, args.use_cache)
-            trips = extend_history.parse_fish_page(day.isoformat(), page.read_text(encoding="utf-8", errors="replace"))
+            text = page.read_text(encoding="utf-8", errors="replace")
+            # `day` is always within the refresh window, i.e. recent enough that
+            # any previously archived data for it could only have come from this
+            # same job -- so marking it refreshed here is safe even when we skip
+            # it below: it purges stale fallback-content trips an earlier run may
+            # have mislabeled with this date, rather than leaving them in place.
+            refreshed_dates.add(day.isoformat())
+            # SanDiegoFishReports silently serves the most recent available day's
+            # report when the requested day has no data posted yet, rather than an
+            # empty page. Treat a mismatch as "not yet reported" instead of
+            # mislabeling that stale content as belonging to `day`.
+            if extend_history.page_report_date(text) != day.isoformat():
+                not_yet_posted.append(day.isoformat())
+                continue
+            trips = extend_history.parse_fish_page(day.isoformat(), text)
             for trip in trips:
                 if trip.get("landing") in extend_history.EXCLUDED_LANDINGS:
                     continue
@@ -240,6 +254,8 @@ def main() -> None:
         embed_report(report, INDEX)
     print(f"Synced {downloaded_trips} reports; matched {len(matches)} frozen forecast windows")
     print(f"Actuals written to {args.output} and {args.archive}; modelWasRetrained=false")
+    if not_yet_posted:
+        print(f"Not yet posted upstream (skipped): {', '.join(not_yet_posted)}")
 
 
 if __name__ == "__main__":
