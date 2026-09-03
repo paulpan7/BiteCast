@@ -14,6 +14,16 @@ Open `index.html` directly in a modern browser. The complete dataset, charts, fi
 
 The interface adapts to phone and tablet screens: filters stack into 1 column, calendar months stack vertically, navigation remains swipeable, and wide charts scroll inside their cards without widening the page.
 
+### Mirroring on PythonAnywhere
+
+GitHub Pages is canonical; a PythonAnywhere web app can mirror the same static checkout. `scripts/pythonanywhere_wsgi.py` serves every file straight off disk (`send_from_directory`, no build step, no templating) -- point that account's WSGI config (`/var/www/<domain>_wsgi.py`) at it:
+```python
+import sys
+sys.path.insert(0, "/home/<user>/BiteCast/scripts")
+from pythonanywhere_wsgi import application
+```
+It reuses whatever virtualenv is already configured for that web app in the PythonAnywhere dashboard (just needs Flask). Keep the mirror current with a Scheduled Task running `git -C /home/<user>/BiteCast pull --ff-only origin main` on some cadence -- no credential needed while the repo stays public. A WSGI config change needs a manual "Reload" from the PythonAnywhere dashboard's Web tab to take effect; nothing triggers that automatically from here.
+
 ## Fleetcast boat tracks
 
 `scripts/shipfinder_playwright.py` runs nightly via **GitHub Actions** (`.github/workflows/sync-boat-tracks.yml`, ~11:00 PM Pacific, free for this public repo -- no paid plan needed). It does **not** run on PythonAnywhere: real headless Chromium can't launch there at all, confirmed directly -- Playwright's browser process dies immediately on `execve()` with a kernel-delivered `SIGTRAP` (`si_code=SI_KERNEL`), the signature of a seccomp filter blocking the launch outright, tried against both the full Chromium and the lighter headless-shell binary, with `--no-sandbox` already passed either way. This is a platform-level restriction on PythonAnywhere's consoles and Scheduled Tasks, not something fixable with flags or missing packages (`ldd` shows no missing libraries).
@@ -22,12 +32,12 @@ The interface adapts to phone and tablet screens: filters stack into 1 column, c
 
 **Login (required for exports)**: confirmed against the live site -- searching a vessel and viewing its 24h/3-day track work logged out, but the CSV export ("Track playback") requires a ShipFinder account, and the site separately checks a `TrackReplay` permission after login (a plain free account may still be refused -- contact `shipfinder@elaneglobal.com` if so). Add `SHIPFINDER_EMAIL` and `SHIPFINDER_PASSWORD` as **GitHub Actions repository secrets** (Settings → Secrets and variables → Actions → New repository secret, or `gh secret set SHIPFINDER_EMAIL` / `gh secret set SHIPFINDER_PASSWORD`, which prompts for the value instead of taking it as a visible argument) and the workflow logs in automatically. `SHIPFINDER_AUTH_STATE` (session reuse) is intentionally left unset here: GitHub Actions runners are a fresh VM every run, so there's no disk to persist a session to, and logging in once per day is a low enough frequency not to bother with. That env var still exists in the script for any future deployment with a persistent disk.
 
-**Getting `bundle.json` onto PythonAnywhere too**: rather than pushing to it (which would mean giving GitHub Actions a credential capable of writing to your PythonAnywhere account), have PythonAnywhere pull -- a Scheduled Task running a plain `curl` of the file GitHub Actions already committed:
+**Getting `bundle.json` onto PythonAnywhere too**: rather than pushing to it (which would mean giving GitHub Actions a credential capable of writing to your PythonAnywhere account), have PythonAnywhere pull. If PythonAnywhere is only mirroring this one data file, a Scheduled Task running a plain `curl` is enough:
 ```bash
 curl -sS -o /home/fleetcast/BiteCast/data/fleetcast/bundle.json \
   https://raw.githubusercontent.com/paulpan7/BiteCast/main/data/fleetcast/bundle.json
 ```
-No credential needed while this repo is public. If it ever goes private, add `-H "Authorization: Bearer $TOKEN"` with a fine-grained PAT scoped to `Contents: Read` on just this repo, stored on PythonAnywhere (the pulling side) -- not a switch to push, and not a credential capable of writing anywhere.
+If PythonAnywhere is mirroring the whole site (see "Mirroring on PythonAnywhere" above), a `git pull` there already picks up `bundle.json` along with everything else -- no separate task needed. Either way, no credential is needed while this repo is public. If it ever goes private, add `-H "Authorization: Bearer $TOKEN"` (curl) or a stored credential helper (`git pull`) using a fine-grained PAT scoped to `Contents: Read` on just this repo -- not a switch to push, and not a credential capable of writing anywhere.
 
 `data/fleetcast/bundle.json` in this repo right now is a one-time seed built from a real ShipFinder export (2026-09-02/03), so the Boat tracks tab has something to show before the nightly GitHub Actions job has run on its own.
 
