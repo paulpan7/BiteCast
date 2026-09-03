@@ -274,9 +274,12 @@ def main():
     from playwright.sync_api import sync_playwright  # heavy optional dep; only needed here
 
     # Stable per-run jitter means a retry does not create a second random delay.
-    now = datetime.now(TZ)
-    delay = int(hashlib.sha256(now.date().isoformat().encode()).hexdigest()[:8], 16) % (45 * 60)
-    time.sleep(delay)
+    # Skipped for a manual/on-demand run (FLEETCAST_SKIP_JITTER) -- a human
+    # watching a test run shouldn't wait up to 45 minutes for nothing to happen.
+    if not os.getenv("FLEETCAST_SKIP_JITTER"):
+        now = datetime.now(TZ)
+        delay = int(hashlib.sha256(now.date().isoformat().encode()).hexdigest()[:8], 16) % (45 * 60)
+        time.sleep(delay)
 
     window_end = datetime.now(TZ)
     window_start = window_end - timedelta(hours=WINDOW_HOURS)

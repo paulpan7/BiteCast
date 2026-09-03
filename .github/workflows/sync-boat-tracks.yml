@@ -22,15 +22,25 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install dependencies
-        run: |
-          pip install -r requirements-shipfinder.txt
-          playwright install --with-deps chromium
+      - run: pip install -r requirements-shipfinder.txt
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('requirements-shipfinder.txt') }}
+      - name: Install Chromium (only on a cache miss -- the ~300MB download)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: playwright install --with-deps chromium
+      - name: Install Chromium's OS packages (cache only covers the browser binary itself)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: playwright install-deps chromium
       - name: Run nightly ShipFinder export
         env:
           SHIPFINDER_EMAIL: ${{ secrets.SHIPFINDER_EMAIL }}
           SHIPFINDER_PASSWORD: ${{ secrets.SHIPFINDER_PASSWORD }}
           FLEETCAST_MMSI_FILE: data/fleetcast/mmsi.csv
+          FLEETCAST_SKIP_JITTER: ${{ github.event_name == 'workflow_dispatch' && '1' || '' }}
         run: python3 scripts/shipfinder_playwright.py
       - name: Publish refreshed bundle
         run: |
