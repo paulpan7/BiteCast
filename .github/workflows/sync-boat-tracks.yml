@@ -1,0 +1,41 @@
+name: Sync boat tracks
+
+on:
+  schedule:
+    # ~11:00 PM Pacific (PDT); shipfinder_playwright.py adds its own random
+    # jitter of up to 45 minutes on top of whenever this actually fires.
+    - cron: "00 06 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-boat-tracks
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install -r requirements-shipfinder.txt
+          playwright install --with-deps chromium
+      - name: Run nightly ShipFinder export
+        env:
+          SHIPFINDER_EMAIL: ${{ secrets.SHIPFINDER_EMAIL }}
+          SHIPFINDER_PASSWORD: ${{ secrets.SHIPFINDER_PASSWORD }}
+          FLEETCAST_MMSI_FILE: data/fleetcast/mmsi.csv
+        run: python3 scripts/shipfinder_playwright.py
+      - name: Publish refreshed bundle
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/fleetcast/bundle.json
+          git diff --cached --quiet || git commit -m "Refresh boat tracks bundle"
+          git push
