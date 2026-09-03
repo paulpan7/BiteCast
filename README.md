@@ -16,7 +16,9 @@ The interface adapts to phone and tablet screens: filters stack into 1 column, c
 
 ## Fleetcast boat tracks
 
-`scripts/shipfinder_playwright.py` is the PythonAnywhere nightly importer. Put the authoritative `boat_name,mmsi` file at the path in `FLEETCAST_MMSI_FILE` (or `data/fleetcast/mmsi.csv`), then schedule `python3 scripts/shipfinder_playwright.py` daily at 8:00 PM Pacific. The job applies a stable random delay through 11:30 PM, reuses the browser state named by `SHIPFINDER_AUTH_STATE`, and writes raw CSVs plus processed GeoJSON under `data/fleetcast/`. Copying that directory with the site makes the Boat tracks tab populate its boat dropdown and calendar date.
+`scripts/shipfinder_playwright.py` is the PythonAnywhere nightly importer. Put the authoritative `boat_name,mmsi` file at the path in `FLEETCAST_MMSI_FILE` (or `data/fleetcast/mmsi.csv`), then schedule `python3 scripts/shipfinder_playwright.py` daily at 11:00 PM Pacific. The job applies a stable random delay of up to 45 minutes, reuses the browser state named by `SHIPFINDER_AUTH_STATE`, downloads each boat's trailing 24 hours of AIS reports, and merges them into one rolling bundle at `data/fleetcast/bundle.json` (shape: `{generated, tracks: {mmsi: {name, mmsi, points}}}`), retaining `FLEETCAST_RETENTION_DAYS` (default 30) of history per boat. Copying that one file with the site is enough for the Boat tracks tab: pick a vessel and a calendar day (Pacific time) from whatever history is retained, and it renders that day's speed-colored track / fishing-likely-heuristic client-side.
+
+The export CSV is GB18030-encoded and its columns are confirmed against a real export (ShipFinder is a Chinese AIS aggregator): plain decimal `Longitude`/`Latitude`, `Ship speed(kn)`, `Ship course`, `Ship heading`, `Navigation status`, and an explicitly UTC-labeled timestamp column that's parsed as UTC directly, not guessed. `FLEETCAST_CSV_NAIVE_TZ` (default `UTC`) only matters as a fallback if some other, unlabeled timestamp column ever needs to be read instead.
 
 To publish with GitHub Pages:
 

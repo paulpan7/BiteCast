@@ -24,11 +24,11 @@ html,body{max-width:100%;overflow-x:hidden}.tabs,.planning-chart-scroll,.analysi
 @media(max-width:700px){.planning-card{padding:10px}.planning-chart-scroll{margin-left:-5px;margin-right:-5px}.planning-chart svg{min-width:500px}.planning-boat{font-size:13px}.planning-detail-range{font-size:9px}}
 @media(max-width:390px){.hero{padding-right:76px}.hero-logo{width:66px;height:66px}.hero h1{font-size:32px}.hero p{font-size:12px}.tab{padding:8px 10px}.planning-heat-card,.analysis-card,.method-rate-card{padding:12px}.planning-card{padding:8px}.planning-month-days .planning-heat-day,.planning-month-blank{min-height:37px}.planning-chart svg{min-width:480px}.analysis-stats{gap:7px}.analysis-stat{padding:9px}.analysis-stat span{font-size:9px}.metric b{font-size:19px}}
 .validation-glossary{margin:4px 0 18px;padding:14px 16px;border-radius:14px;background:#f2f8f7;border:1px solid var(--line)}.validation-glossary p{margin:0 0 8px}.validation-glossary p:last-child{margin-bottom:0}
-</style><style>.track-toolbar{background:#fff;border:1px solid var(--line);border-radius:18px;padding:15px;display:flex;gap:12px;align-items:end;flex-wrap:wrap;box-shadow:var(--shadow);margin-bottom:12px}.track-toolbar .field{width:min(260px,100%)}.track-status{color:var(--muted);margin:8px 2px}.track-map{height:560px;background:#dfeceb;border:1px solid var(--line);border-radius:18px;overflow:hidden}.track-note{color:var(--muted);font-size:12px}@media(max-width:650px){.track-toolbar{align-items:stretch;flex-direction:column}.track-toolbar .field{width:100%}.track-map{height:460px}}</style></head><body>
+</style><style>.track-toolbar{background:#fff;border:1px solid var(--line);border-radius:18px;padding:15px;display:flex;gap:12px;align-items:end;flex-wrap:wrap;box-shadow:var(--shadow);margin-bottom:12px}.track-toolbar .field{width:min(220px,100%)}.track-status{color:var(--muted);margin:8px 2px}.track-map{height:560px;background:#dfeceb;border:1px solid var(--line);border-radius:18px;overflow:hidden}.track-metrics{margin:12px 0}.track-legend{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin-top:12px;color:var(--muted);font-size:11px;font-weight:700}.track-speed-ramp{width:160px;height:9px;border-radius:99px;background:linear-gradient(90deg,#ee2d35,#ff8b24,#ffe047,#36c875,#2b9ee8,#4d45d8,#8b2bd4)}.track-fish-icon{font-size:16px;line-height:1;text-align:center}.track-note{color:var(--muted);font-size:12px;margin-top:10px}@media(max-width:650px){.track-toolbar{align-items:stretch;flex-direction:column}.track-toolbar .field{width:100%}.track-map{height:460px}.track-metrics{grid-template-columns:1fr 1fr}}</style></head><body>
 <header class="hero"><div class="eyebrow">San Diego</div><h1>BiteCast</h1><p>Data-driven fishing forecast based on historical fish count and weather patterns</p><img class="hero-logo" src="assets/bitecast-mark-monochrome.png" alt="BiteCast fish mark"></header>
 <nav class="tabs"><button class="tab active" data-tab="planning">BiteCast</button><button class="tab" data-tab="heatmap">Boat tracks</button><button class="tab" data-tab="trending">Trending</button><button class="tab" data-tab="analysis">Analysis</button><button class="tab" data-tab="method">Data &amp; Methods</button></nav>
 <main class="wrap">
-<section id="heatmap" class="panel"><div class="track-toolbar"><div class="field"><label for="trackBoat">Boat</label><select id="trackBoat"><option value="">Loading boats…</option></select></div><div class="field"><label for="trackDate">Date</label><input id="trackDate" type="date"></div><button class="btn" id="trackLoad" type="button">Show day</button></div><div class="track-status" id="trackStatus" role="status">Choose a boat and date to view its AIS path.</div><div id="trackMap" class="track-map" role="img" aria-label="Boat path and stopping-point heatmap"></div><p class="track-note">The path uses the daily ShipFinder export. Points inside configured port geofences are excluded from the stopping-point heatmap.</p></section>
+<section id="heatmap" class="panel"><div class="track-toolbar"><div class="field"><label for="trackBoat">Vessel</label><select id="trackBoat"><option value="">Loading vessels…</option></select></div><div class="field"><label for="trackDay">Day</label><input id="trackDay" type="date"></div></div><div class="track-status" id="trackStatus" role="status">Choose a vessel and day to view its AIS track.</div><div id="trackMap" class="track-map" role="img" aria-label="Vessel AIS track map"></div><div class="analysis-stats track-metrics" id="trackMetrics" hidden><div class="analysis-stat"><b id="trackMetricReports">–</b><span>Reports</span></div><div class="analysis-stat"><b id="trackMetricDistance">–</b><span>Distance</span></div><div class="analysis-stat"><b id="trackMetricSpeed">–</b><span>Avg speed</span></div><div class="analysis-stat"><b id="trackMetricLatest">–</b><span>Latest report</span></div></div><div class="track-legend"><span id="trackSpeedMin">– kt</span><span class="track-speed-ramp" aria-hidden="true"></span><span id="trackSpeedMax">– kt</span><span>🐟 likely fishing (0.5–5 kt sustained ≥15 min)</span></div><p class="track-note">The path uses the nightly ShipFinder export (~11pm Pacific, merged into a rolling history so any retained day can be picked above, Pacific time). Track color is stretched across this vessel's own min–max speed for the selected day (labeled in real kt above, not relative to any other vessel or day); 🐟 markers flag a dwell of at least 15 continuous minutes at 0.5–5 kt outside excluded harbor/base zones (dashed outline) as a fishing-likely heuristic, not a confirmed catch.</p></section>
 <section id="trending" class="panel"><div class="trend-controls"><div class="field"><label>Trending range</label><select id="trendRange"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="60">Last 60 days</option><option value="90">Last 90 days</option><option value="ytd">2026 YTD</option></select></div><p class="trend-summary" id="trendSummary"></p></div><div class="trend-section-head"><div><h2>Top 8 reported species</h2><p>Daily kept + released encounters, with AM and PM shown together.</p></div><div class="timeline-legend"><span class="timeline-key"><i class="timeline-dot am"></i>AM</span><span class="timeline-key"><i class="timeline-dot pm"></i>PM</span></div></div><div id="trendSpecies" class="trend-grid"></div><div class="trend-section-head"><div><h2>Top 10 producing boats</h2><p>Total reported encounters in the selected range.</p></div><div class="timeline-legend"><span class="timeline-key"><i class="timeline-dot am"></i>AM</span><span class="timeline-key"><i class="timeline-dot pm"></i>PM</span></div></div><section class="trend-boats"><div class="trend-chart-scroll"><div id="trendBoats" role="img"></div></div></section><p class="trend-note">Days without matching reported counts appear blank; missing trip reports are not treated as confirmed 0 catch.</p></section>
 <section id="historical" class="panel"><div class="metric-grid" id="metrics"></div><div class="notice"><b>Fish counted:</b> kept + released. A released calico, barracuda, or halibut still counts. Missing trip reports are not treated as 0.</div>
 <div class="toolbar"><div class="field"><label>Species</label><select id="speciesFilter"><option value="all">All species</option></select></div><div class="field"><label>Boat</label><select id="boatFilter"><option value="all">All boats</option></select></div><div class="field"><label>Landing</label><select id="landingFilter"><option value="all">All landings</option></select></div><div class="field"><label>Year</label><select id="yearFilter"><option value="all">All years</option><option>2026</option><option>2025</option><option>2024</option><option>2023</option><option>2022</option><option>2021</option><option>2020</option><option>2019</option><option>2018</option><option>2017</option></select></div><div class="field"><label>Trip</label><select id="periodFilter"><option value="all">AM + PM</option><option>AM</option><option>PM</option></select></div><div class="field"><label>From</label><input id="fromFilter" type="date" min="2017-01-01"></div><div class="field"><label>Through</label><input id="toFilter" type="date" min="2017-01-01"></div></div>
@@ -154,26 +154,120 @@ function formatTideChange(value){const direction=value>0?'rising':value<0?'falli
 function showTideModelDetails(){const date=planningSelectedDate,tideText=`NOAA tide change: AM ${formatTideChange(forecastTideDelta(date,'AM'))} · PM ${formatTideChange(forecastTideDelta(date,'PM'))}`;if(planningSubtitle.textContent&&!planningSubtitle.textContent.includes('NOAA tide change'))planningSubtitle.textContent+=` · ${tideText}`;const planningNote=document.querySelector('#planning .planning-note');if(planningNote&&!planningNote.textContent.includes('tide predictions'))planningNote.textContent+=' All dates use NOAA San Diego station 9410170 half-day tide predictions; + means rising and − means falling.';const forecastCopy=`Uses forecast sea-surface temperature, swell, signed NOAA half-day tide change, AM/PM, and <b>${esc(forecastBoat.value)}</b>’s recent catch state. The model uses no month, season, or day-of-year.`;if(forecastExplanation&&forecastExplanation.innerHTML!==forecastCopy)forecastExplanation.innerHTML=forecastCopy;const forecastRows=document.querySelectorAll('#forecastGrid .score-row .wx'),forecastDays=boatForecast(forecastBoat.value).flatMap(day=>day.periods);forecastRows.forEach((row,index)=>{if(row.dataset.tideShown)return;row.textContent+=` · tide ${formatTideChange(forecastDays[index].tideDeltaFt)}`;row.dataset.tideShown='true'});const methodArticle=[...document.querySelectorAll('#method .method')].find(article=>article.querySelector('h2')?.textContent==='Weather-first boat forecasts');if(methodArticle){const firstParagraph=methodArticle.querySelector('p'),methodCopy='Every boat is forecast with a regularized model using observed sea-surface temperature, swell, signed NOAA half-day tide change, AM/PM, and the boat’s recent catch state. Positive tide change means rising; negative means falling. It contains no date, month, day-of-year, or seasonal predictor.';if(firstParagraph.textContent!==methodCopy)firstParagraph.textContent=methodCopy;if(!methodArticle.querySelector('.model-weight-note')){const note=document.createElement('p');note.className='model-weight-note';note.innerHTML='<b>Parameter weighting:</b> weights are learned from historical training trips after inputs are scaled. Ridge regularization (λ = 12) shrinks weak or noisy effects toward 0, so tide can influence a forecast without being given an arbitrary fixed percentage. Chronological testing confirms the signed tide term has low influence: fleet MAE is 2.0529 and RMSE is 2.7142 fish per angler, versus 2.0502 and 2.7112 without tide.';firstParagraph.insertAdjacentElement('afterend',note)}}}
 const languageAndGapObserver=new MutationObserver(()=>{useFishPerAnglerLanguage(document);leaveMissingWeatherGaps();applyPlanningRangeWhiskers();fitPlanningChartMobile();fitAnalysisHistogramMobile();fitTrendingMobile();fitRemainingGraphicsMobile();showTideModelDetails()});languageAndGapObserver.observe(document.body,{childList:true,subtree:true});useFishPerAnglerLanguage(document);leaveMissingWeatherGaps();applyPlanningRangeWhiskers();fitPlanningChartMobile();fitAnalysisHistogramMobile();fitTrendingMobile();fitRemainingGraphicsMobile();showTideModelDetails();
 </script><script>
-// Daily AIS track viewer. Files are written by scripts/shipfinder_playwright.py.
+// AIS track viewer. Bundle is written by scripts/shipfinder_playwright.py:
+// one rolling {generated, tracks:{mmsi:{name,mmsi,points}}} file per fleet,
+// with all range/day filtering done here client-side.
 (function(){
-  const boat=document.getElementById('trackBoat'), date=document.getElementById('trackDate'), load=document.getElementById('trackLoad'), status=document.getElementById('trackStatus'), holder=document.getElementById('trackMap');
-  if(!boat)return;
-  const slug=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
-  let map, layers;
+  const boatSel=document.getElementById('trackBoat'), daySel=document.getElementById('trackDay'), status=document.getElementById('trackStatus'), holder=document.getElementById('trackMap'), metricsBox=document.getElementById('trackMetrics'), mReports=document.getElementById('trackMetricReports'), mDistance=document.getElementById('trackMetricDistance'), mSpeed=document.getElementById('trackMetricSpeed'), mLatest=document.getElementById('trackMetricLatest'), legendMin=document.getElementById('trackSpeedMin'), legendMax=document.getElementById('trackSpeedMax');
+  if(!boatSel)return;
+  let map, layers, tracks={}, generated=null;
+  // Zones excluded from fishing-dwell detection (naval base / harbor / marina areas
+  // where a boat can legitimately idle at low speed without fishing). Approximate
+  // starting points -- adjust center/radius or swap to a polygon of [lat,lon] pairs
+  // to match the real geofence: {type:'polygon',name:'...',points:[[lat,lon],...]}.
+  const EXCLUSION_ZONES=[
+    {type:'circle',name:'North Island NAS / San Diego Bay',center:[32.70,-117.20],radiusNm:2.5},
+  ];
+  const MIN_DWELL_MINUTES=15, MAX_DWELL_GAP_MINUTES=10; // fishing-episode thresholds: minimum sustained low-speed duration, and the longest reporting gap that still counts as continuous
+  function pointInPolygon(lat,lon,poly){
+    let inside=false;
+    for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+      const [yi,xi]=poly[i], [yj,xj]=poly[j];
+      if(((yi>lat)!==(yj>lat)) && (lon<(xj-xi)*(lat-yi)/(yj-yi)+xi)) inside=!inside;
+    }
+    return inside;
+  }
+  function inExclusionZone(lat,lon){
+    return EXCLUSION_ZONES.some(zone=>zone.type==='polygon'
+      ? pointInPolygon(lat,lon,zone.points)
+      : L.latLng(zone.center).distanceTo([lat,lon])/1852<=zone.radiusNm);
+  }
+  const palette=(s,min,max)=>{if(s==null)return '#8d9a9d'; const t=Math.max(0,Math.min(1,(Number(s)-min)/((max-min)||1))); return `hsl(${Math.round(t*300)},88%,50%)`};
+  const pdtTime=iso=>new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZoneName:'short'}).format(new Date(iso));
   function ensureMap(){
-    if(map)return;
-    if(!window.L){status.textContent='Map library unavailable; the exported GeoJSON files are still available in data/fleetcast/processed.';return;}
+    if(map)return true;
+    if(!window.L){status.textContent='Map library unavailable.';return false;}
     map=L.map(holder).setView([32.72,-117.2],10); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors'}).addTo(map); layers=L.layerGroup().addTo(map);
+    EXCLUSION_ZONES.forEach(zone=>{
+      const shape=zone.type==='polygon'?L.polygon(zone.points,{color:'#637b88',weight:1.5,dashArray:'5,4',fillOpacity:.05}):L.circle(zone.center,{radius:zone.radiusNm*1852,color:'#637b88',weight:1.5,dashArray:'5,4',fillOpacity:.05});
+      shape.bindTooltip(`${esc(zone.name||'Exclusion zone')} (excluded from fishing detection)`).addTo(map);
+    });
+    return true;
   }
-  async function show(){
-    if(!boat.value||!date.value)return; ensureMap(); if(!map)return;
-    status.textContent='Loading track…'; layers.clearLayers(); const key=slug(boat.value), base=`data/fleetcast/processed/${date.value}/${key}`;
-    try{const [track,stops]=await Promise.all([fetch(`${base}.geojson`).then(r=>r.ok?r.json():Promise.reject()),fetch(`${base}-stops.geojson`).then(r=>r.ok?r.json():Promise.reject())]);
-      const path=L.geoJSON(track,{style:{color:'#087985',weight:4}}).addTo(layers); const coords=[]; (stops.features||[]).forEach(f=>{const [lon,lat]=f.geometry.coordinates;coords.push([lat,lon]);L.circleMarker([lat,lon],{radius:5,color:'#f26d55',fillColor:'#fff',fillOpacity:1,weight:2}).bindTooltip(`${f.properties.timestamp||'Stop'} · ${f.properties.dwell_minutes||10} min`).addTo(layers)}); if(coords.length && L.heatLayer)L.heatLayer(coords,{radius:28,blur:22,maxZoom:13,gradient:{.25:'#f4b942',.55:'#f26d55',.9:'#8c2f39'}}).addTo(layers); const bounds=path.getBounds(); if(bounds.isValid())map.fitBounds(bounds.pad(.12)); status.textContent=`${boat.value} · ${date.value} · ${coords.length} stopping points outside port geofences.`;
-    }catch(e){status.textContent=`No exported track is available for ${boat.value} on ${date.value}.`}
+  function findDwellEpisodes(points){
+    // A fishing dwell is a run of consecutive reports that all sit in the
+    // 0.5-5kt band, outside any exclusion zone, without a reporting gap
+    // longer than MAX_DWELL_GAP_MINUTES -- not just a single slow ping,
+    // which also catches brief course changes and harbor-approach speeds.
+    const episodes=[]; let current=null;
+    points.forEach(p=>{
+      const qualifies=Number.isFinite(p.speed)&&p.speed>=0.5&&p.speed<=5&&!inExclusionZone(p.lat,p.lon);
+      if(qualifies){
+        const gapMin=current?(new Date(p.utc)-new Date(current.at(-1).utc))/60000:0;
+        if(current&&gapMin<=MAX_DWELL_GAP_MINUTES)current.push(p);
+        else{if(current)episodes.push(current); current=[p];}
+      }else{if(current)episodes.push(current); current=null;}
+    });
+    if(current)episodes.push(current);
+    return episodes.map(ep=>{
+      const durationMin=(new Date(ep.at(-1).utc)-new Date(ep[0].utc))/60000, speeds=ep.map(p=>p.speed).filter(Number.isFinite);
+      return {
+        lat:ep.reduce((s,p)=>s+p.lat,0)/ep.length, lon:ep.reduce((s,p)=>s+p.lon,0)/ep.length,
+        durationMin, avgSpeed:speeds.length?speeds.reduce((a,b)=>a+b,0)/speeds.length:null,
+        reports:ep.length, start:ep[0].utc, end:ep.at(-1).utc,
+      };
+    }).filter(ep=>ep.durationMin>=MIN_DWELL_MINUTES);
   }
-  load.addEventListener('click',show); date.addEventListener('change',show);
-  Promise.all([new Promise(resolve=>{const l=document.createElement('link');l.rel='stylesheet';l.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';l.onload=resolve;document.head.appendChild(l)}),new Promise(resolve=>{const s=document.createElement('script');s.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';s.onload=resolve;document.head.appendChild(s)})]).then(()=>new Promise(resolve=>{const s=document.createElement('script');s.src='https://unpkg.com/leaflet.heat/dist/leaflet-heat.js';s.onload=resolve;s.onerror=resolve;document.head.appendChild(s)}));
-  fetch('data/fleetcast/latest.json').then(r=>r.ok?r.json():Promise.reject()).then(m=>{boat.innerHTML=(m.boats||[]).filter(x=>x.status==='ok').map(x=>`<option value="${x.boat_name}">${x.boat_name}</option>`).join('')||'<option value="">No exports yet</option>';if(m.date)date.value=m.date;}).catch(()=>{boat.innerHTML='<option value="">Run nightly export first</option>'});
+  function addFishingHotspots(points,name){
+    findDwellEpisodes(points).forEach(ep=>{
+      L.circle([ep.lat,ep.lon],{radius:450,color:'#f26d55',weight:1,fillColor:'#f4b942',fillOpacity:.16}).bindPopup(`<b>Likely fishing spot</b><br>${esc(name)} · ${Math.round(ep.durationMin)} min at ~${ep.avgSpeed?ep.avgSpeed.toFixed(1):'—'} kt<br>${fmt(ep.reports)} reports · ${pdtTime(ep.start)}–${pdtTime(ep.end)}`).addTo(layers);
+      L.marker([ep.lat,ep.lon],{icon:L.divIcon({className:'track-fish-icon',html:'🐟',iconSize:[20,20],iconAnchor:[10,10]})}).addTo(layers);
+    });
+  }
+  function render(){
+    if(!ensureMap())return;
+    layers.clearLayers();
+    const item=tracks[boatSel.value];
+    if(!item||!daySel.value){status.textContent='Choose a vessel and day to view its AIS track.'; metricsBox.hidden=true; legendMin.textContent=legendMax.textContent='– kt'; return}
+    const points=(item.points||[]).filter(p=>p.local.slice(0,10)===daySel.value);
+    if(!points.length){status.textContent=`No exported reports for ${item.name} on ${daySel.value}.`; metricsBox.hidden=true; legendMin.textContent=legendMax.textContent='– kt'; map.setView([32.72,-117.2],10); return}
+    const speeds=points.map(p=>p.speed).filter(Number.isFinite), minSpeed=speeds.length?Math.min(...speeds):0, maxSpeed=speeds.length?Math.max(...speeds):1;
+    legendMin.textContent=`${minSpeed.toFixed(1)} kt`; legendMax.textContent=`${maxSpeed.toFixed(1)} kt`;
+    const distance=points.slice(1).reduce((sum,p,i)=>sum+L.latLng(points[i].lat,points[i].lon).distanceTo([p.lat,p.lon])/1852,0);
+    mReports.textContent=fmt(points.length); mDistance.textContent=`${distance.toFixed(1)} nm`; mSpeed.textContent=speeds.length?`${(speeds.reduce((a,b)=>a+b,0)/speeds.length).toFixed(1)} kt`:'—'; mLatest.textContent=pdtTime(points.at(-1).utc); metricsBox.hidden=false;
+    const bounds=[], markerEvery=Math.max(1,Math.round(points.length/30));
+    points.forEach((p,i)=>{
+      bounds.push([p.lat,p.lon]);
+      if(i){const prev=points[i-1], steps=12;
+        for(let j=1;j<=steps;j++){const t=j/steps, lat=prev.lat+(p.lat-prev.lat)*t, lon=prev.lon+(p.lon-prev.lon)*t, speed=Number.isFinite(prev.speed)&&Number.isFinite(p.speed)?prev.speed+(p.speed-prev.speed)*t:(p.speed??prev.speed);
+          L.polyline([[prev.lat+(p.lat-prev.lat)*(j-1)/steps,prev.lon+(p.lon-prev.lon)*(j-1)/steps],[lat,lon]],{color:palette(speed,minSpeed,maxSpeed),weight:6,opacity:.95,lineCap:'round'}).addTo(layers);
+        }
+      }
+      if(i===0||i===points.length-1||i%markerEvery===0){
+        L.circleMarker([p.lat,p.lon],{radius:i===points.length-1?7:3.5,color:'#fff',weight:1,fillColor:palette(p.speed,minSpeed,maxSpeed),fillOpacity:.95}).bindPopup(`<b>${esc(item.name)}</b><br>${pdtTime(p.utc)}<br>Speed: ${p.speed==null?'—':p.speed.toFixed(1)+' kt'}<br>${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}`).addTo(layers);
+      }
+    });
+    addFishingHotspots(points,item.name);
+    map.fitBounds(bounds,{padding:[28,28]});
+    status.textContent=`${item.name} · ${fmt(points.length)} reports · updated ${generated?pdtTime(generated):'—'}`;
+  }
+  boatSel.addEventListener('change',()=>{
+    const item=tracks[boatSel.value], dates=[...new Set((item?.points||[]).map(p=>p.local.slice(0,10)))].sort();
+    daySel.min=dates[0]||''; daySel.max=dates.at(-1)||''; daySel.value=dates.at(-1)||'';
+    render();
+  });
+  daySel.addEventListener('change',render);
+  // The panel loads its data on page load, while the Boat tracks tab is still
+  // hidden under the default active tab, so Leaflet caches a zero-size SVG
+  // viewport. Recompute once the tab (and its real layout) becomes visible.
+  document.querySelector('[data-tab="heatmap"]')?.addEventListener('click',()=>{if(map)setTimeout(()=>map.invalidateSize(),0);});
+  Promise.all([new Promise(resolve=>{const l=document.createElement('link');l.rel='stylesheet';l.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';l.onload=resolve;document.head.appendChild(l)}),new Promise(resolve=>{const s=document.createElement('script');s.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';s.onload=resolve;document.head.appendChild(s)})]).then(()=>{
+    fetch('data/fleetcast/bundle.json').then(r=>r.ok?r.json():Promise.reject()).then(bundle=>{
+      tracks=bundle.tracks||{}; generated=bundle.generated||null;
+      const sorted=Object.values(tracks).filter(item=>item.points?.length).sort((a,b)=>b.points.length-a.points.length||a.name.localeCompare(b.name));
+      boatSel.innerHTML=sorted.length?sorted.map(item=>`<option value="${esc(item.mmsi)}">${esc(item.name)} · ${fmt(item.points.length)} reports</option>`).join(''):'<option value="">No exports yet</option>';
+      if(sorted.length){boatSel.value=sorted[0].mmsi; boatSel.dispatchEvent(new Event('change'));} else {status.textContent='No boat-track bundle found yet.';}
+    }).catch(()=>{boatSel.innerHTML='<option value="">Run nightly export first</option>'; status.textContent='No boat-track bundle found yet.';});
+  });
 })();
 </script></body></html>
