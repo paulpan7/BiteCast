@@ -29,6 +29,18 @@ format above.
 
 The input file is intentionally kept outside the repository on PythonAnywhere.
 Expected columns: boat_name,mmsi (a header row is optional).
+
+LOGIN (confirmed against the real site, 2026-09-03): passive vessel search
+and the 24h/3-day track view work while logged out, but "Track playback" --
+what the CSV export lives under -- requires an account, and the site's own
+JS checks a *second*, separate `TrackReplay` permission after login, so a
+plain free account may still be refused (contact shipfinder@elaneglobal.com
+if so). Set SHIPFINDER_EMAIL and SHIPFINDER_PASSWORD (read fresh from the
+environment at run time, never written to disk or logged) and this script
+logs in automatically via login(); set SHIPFINDER_AUTH_STATE to a path
+OUTSIDE this git repo (it becomes a saved session file, equivalent to a
+login token -- never commit it) so a fresh login only happens once instead
+of every night.
 """
 from __future__ import annotations
 
@@ -45,6 +57,7 @@ CSV_NAIVE_TZ = ZoneInfo(os.getenv("FLEETCAST_CSV_NAIVE_TZ", "UTC"))  # see TIMEZ
 BUNDLE_PATH = ROOT / "bundle.json"
 WINDOW_HOURS = 24
 RETENTION_DAYS = int(os.getenv("FLEETCAST_RETENTION_DAYS", "30"))
+GIT_REPO_ROOT = os.getenv("FLEETCAST_GIT_REPO")  # path to the BiteCast git checkout on this machine; unset = don't push
 
 def read_fleet():
     raw = MMSI_FILE.read_text().splitlines()
@@ -58,18 +71,85 @@ def read_fleet():
 def slug(value):
     return re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
 
-def export_window(page, boat, start_date, end_date, out):
-    page.goto(SITE_URL, wait_until="domcontentloaded")
-    search = page.get_by_placeholder(re.compile("search.*vessel|vessel.*search", re.I)).first
-    search.fill(boat["mmsi"] or boat["boat_name"])
-    search.press("Enter")
+LOGIN_URL = f"{SITE_URL}/home/login"
+
+def is_logged_in(page):
+    return bool(page.evaluate("() => !!(window.config && window.config.auth && window.config.auth.IsLogin)"))
+
+def has_track_replay_permission(page):
+    return bool(page.evaluate("() => !!(window.config && window.config.auth && window.config.auth.TrackReplay)"))
+
+def login(page):
+    """Log into ShipFinder with SHIPFINDER_EMAIL/SHIPFINDER_PASSWORD.
+
+    Credentials are read fresh from the environment at call time and never
+    written to disk, logged, or included in any exception message. Real
+    login form, confirmed 2026-09-03: https://www.shipfinder.com/home/login,
+    fields #userName / #userPWD, "Keep me signed in" checkbox #autologin
+    (checked by default), submit button #submitBtn. No CAPTCHA was present
+    on the static form during that check, but one could still appear under
+    bot-detection heuristics this script can't anticipate.
+    """
+    email = os.getenv("SHIPFINDER_EMAIL")
+    password = os.getenv("SHIPFINDER_PASSWORD")
+    if not email or not password:
+        raise RuntimeError(
+            "Not logged into ShipFinder and no usable saved session. Set "
+            "SHIPFINDER_EMAIL and SHIPFINDER_PASSWORD, and ideally "
+            "SHIPFINDER_AUTH_STATE too (a path OUTSIDE this git repo) so the "
+            "session persists across runs instead of logging in every night."
+        )
+    page.goto(LOGIN_URL, wait_until="domcontentloaded")
+    page.locator("#userName").fill(email)
+    page.locator("#userPWD").fill(password)
+    if not page.locator("#autologin").is_checked():
+        page.locator("#autologin").check()
+    page.locator("#submitBtn").click()
     page.wait_for_load_state("networkidle")
-    # The MMSI file is authoritative; the UI is used only to reach the export.
-    page.get_by_text(re.compile("history|track|playback", re.I)).first.click()
-    page.get_by_label(re.compile("start|from", re.I)).fill(start_date.isoformat())
-    page.get_by_label(re.compile("end|to|through", re.I)).fill(end_date.isoformat())
+    if not is_logged_in(page):
+        raise RuntimeError("ShipFinder login did not succeed (wrong credentials, or the site changed its login form).")
+    if not has_track_replay_permission(page):
+        print("WARNING: logged in, but this account has no TrackReplay permission -- "
+              "track playback/export will likely fail (contact shipfinder@elaneglobal.com "
+              "or check the account's plan).")
+
+def ensure_logged_in(context, page):
+    """Reuse a saved session (loaded into `context` via storage_state before
+    this is called) if it's still valid; otherwise log in fresh and, if
+    SHIPFINDER_AUTH_STATE is set, save the new session for next time."""
+    page.goto(SITE_URL, wait_until="domcontentloaded")
+    if is_logged_in(page):
+        return
+    login(page)
+    auth_state_path = os.getenv("SHIPFINDER_AUTH_STATE")
+    if auth_state_path:
+        context.storage_state(path=auth_state_path)
+    else:
+        print("WARNING: SHIPFINDER_AUTH_STATE is not set, so this session can't be "
+              "saved -- every run will log in again. Set it to a path OUTSIDE this "
+              "git repo (never commit a session file: it's equivalent to a login token).")
+
+def export_window(page, boat, start_date, end_date, out):
+    """Confirmed against the real site 2026-09-03, up through the login gate
+    on "Track playback" (see login() above) -- ensure_logged_in() must run
+    first. The exact click path from there to the #dateSelect/#dateSelectEnd
+    date-range panel was traced via the page's own JS (shipInfoLayer /
+    trackreplay), not fully driven end-to-end with a real account, so treat
+    the first scheduled run as a supervised (non-headless) smoke test.
+    """
+    search = page.get_by_placeholder("Search ship, port...")
+    search.click()
+    search.fill(boat["mmsi"] or boat["boat_name"])
+    page.wait_for_timeout(600)  # results are debounced, not immediate
+    result = page.locator(f'a.ship_ico[mmsi="{boat["mmsi"]}"]') if boat["mmsi"] else page.locator(".ship_list a.ship_ico")
+    result.first.click()
+    page.get_by_text("Track playback", exact=True).first.click()
+    page.locator("#dateSelect").fill(f"{start_date.isoformat()} 00:00")
+    page.locator("#dateSelectEnd").fill(f"{end_date.isoformat()} 23:59")
+    page.get_by_text("Search", exact=True).click()
+    page.wait_for_load_state("networkidle")
     with page.expect_download(timeout=90_000) as info:
-        page.get_by_role("button", name=re.compile("export|download", re.I)).click()
+        page.get_by_text("Export", exact=True).click()
     download = info.value
     target = out / f"{slug(boat['boat_name'])}-{start_date.isoformat()}_{end_date.isoformat()}.csv"
     download.save_as(str(target))
@@ -170,6 +250,26 @@ def merge_points(existing, fresh, retention_cutoff):
     merged.sort(key=lambda p: p["utc"])
     return merged
 
+def git_commit_and_push(repo_root, paths, message):
+    """Commit and push the given paths, so GitHub Pages picks up the fresh
+    bundle the same way the validation-sync GitHub Action already commits
+    its own data back to this repo.
+
+    Assumes git on this machine is already configured with push credentials
+    (an SSH deploy key, or an HTTPS credential helper) -- this just runs the
+    plumbing a human would from an authenticated shell; it doesn't manage or
+    embed any credential itself. A no-op, not an error, if nothing changed.
+    """
+    import subprocess
+    repo_root = str(repo_root)
+    subprocess.run(["git", "-C", repo_root, "add", *[str(p) for p in paths]], check=True)
+    unchanged = subprocess.run(["git", "-C", repo_root, "diff", "--cached", "--quiet"]).returncode == 0
+    if unchanged:
+        print("git: no changes to commit")
+        return
+    subprocess.run(["git", "-C", repo_root, "commit", "-m", message], check=True)
+    subprocess.run(["git", "-C", repo_root, "push"], check=True)
+
 def main():
     from playwright.sync_api import sync_playwright  # heavy optional dep; only needed here
 
@@ -192,8 +292,11 @@ def main():
     }
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=True, downloads_path=str(out / "tmp"))
-        context = browser.new_context(storage_state=os.getenv("SHIPFINDER_AUTH_STATE") or None, accept_downloads=True)
+        auth_state_path = os.getenv("SHIPFINDER_AUTH_STATE")
+        saved_session = auth_state_path if auth_state_path and Path(auth_state_path).exists() else None
+        context = browser.new_context(storage_state=saved_session, accept_downloads=True)
         page = context.new_page()
+        ensure_logged_in(context, page)
         for boat in read_fleet():
             try:
                 # The window straddles midnight (an 11pm run covers "yesterday" and
@@ -219,6 +322,15 @@ def main():
     manifest["finished_at"] = datetime.now(timezone.utc).isoformat()
     (ROOT / "manifests").mkdir(parents=True, exist_ok=True)
     (ROOT / "manifests" / f"{window_end.date().isoformat()}.json").write_text(json.dumps(manifest, indent=2))
+
+    # bundle.json is already sitting on this machine's disk at this point --
+    # a PythonAnywhere web app can be pointed at FLEETCAST_DATA_DIR to serve
+    # it directly with no further steps. Pushing it into the BiteCast repo
+    # too (opt-in via FLEETCAST_GIT_REPO) is what makes GitHub Pages serve
+    # the same file, matching how the validation-sync GitHub Action already
+    # commits its own data back to this repo.
+    if GIT_REPO_ROOT:
+        git_commit_and_push(GIT_REPO_ROOT, [BUNDLE_PATH], f"Refresh boat tracks bundle ({window_end.date().isoformat()})")
 
 if __name__ == "__main__":
     main()

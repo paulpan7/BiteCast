@@ -10,11 +10,12 @@ Run with: python3 -m unittest test_shipfinder_playwright -v
 from __future__ import annotations
 
 import csv
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 
-from shipfinder_playwright import merge_points, parse_points, parse_timestamp
+from shipfinder_playwright import git_commit_and_push, login, merge_points, parse_points, parse_timestamp
 
 
 def write_csv(rows: list[dict]) -> Path:
@@ -192,6 +193,70 @@ class MergePointsTests(unittest.TestCase):
         merged = merge_points(existing, fresh=[], retention_cutoff="2026-08-01T00:00:00Z")
         self.assertEqual(len(merged), 1)
         self.assertEqual(merged[0]["utc"], "2026-09-01T12:00:00Z")
+
+
+class LoginCredentialCheckTests(unittest.TestCase):
+    """login() itself needs a real Playwright page and can't be exercised
+    offline, but the credential check must fail before ever touching the
+    page -- verified here by passing None and confirming it never gets used."""
+
+    def setUp(self):
+        import os
+        self._env = {k: os.environ.pop(k, None) for k in ("SHIPFINDER_EMAIL", "SHIPFINDER_PASSWORD")}
+
+    def tearDown(self):
+        import os
+        for k, v in self._env.items():
+            if v is not None:
+                os.environ[k] = v
+
+    def test_missing_credentials_raises_before_touching_page(self):
+        with self.assertRaisesRegex(RuntimeError, "SHIPFINDER_EMAIL"):
+            login(page=None)
+
+    def test_missing_password_only_still_raises(self):
+        import os
+        os.environ["SHIPFINDER_EMAIL"] = "someone@example.com"
+        with self.assertRaisesRegex(RuntimeError, "SHIPFINDER_PASSWORD"):
+            login(page=None)
+
+
+def make_local_repo_with_remote():
+    """A real local repo + bare 'remote', so git_commit_and_push's add/commit/
+    push can be exercised end-to-end without touching the network or GitHub."""
+    root = Path(tempfile.mkdtemp())
+    remote = root / "remote.git"
+    work = root / "work"
+    subprocess.run(["git", "init", "--bare", "-q", str(remote)], check=True)
+    subprocess.run(["git", "clone", "-q", str(remote), str(work)], check=True)
+    subprocess.run(["git", "-C", str(work), "config", "user.email", "test@example.com"], check=True)
+    subprocess.run(["git", "-C", str(work), "config", "user.name", "Test"], check=True)
+    # a bare repo has no branches yet; make an initial commit so push has something to fast-forward
+    (work / "README.md").write_text("seed\n")
+    subprocess.run(["git", "-C", str(work), "add", "README.md"], check=True)
+    subprocess.run(["git", "-C", str(work), "commit", "-q", "-m", "seed"], check=True)
+    subprocess.run(["git", "-C", str(work), "push", "-q", "-u", "origin", "HEAD"], check=True)
+    return work, remote
+
+
+class GitCommitAndPushTests(unittest.TestCase):
+    def test_commits_and_pushes_a_changed_file(self):
+        work, remote = make_local_repo_with_remote()
+        bundle = work / "bundle.json"
+        bundle.write_text('{"generated":"now"}')
+        git_commit_and_push(work, [bundle], "Refresh bundle")
+        log = subprocess.run(["git", "-C", str(remote), "log", "-1", "--format=%s"], capture_output=True, text=True, check=True)
+        self.assertEqual(log.stdout.strip(), "Refresh bundle")
+
+    def test_no_changes_is_a_silent_noop_not_an_error(self):
+        work, remote = make_local_repo_with_remote()
+        bundle = work / "bundle.json"
+        bundle.write_text('{"generated":"now"}')
+        git_commit_and_push(work, [bundle], "First push")
+        before = subprocess.run(["git", "-C", str(remote), "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout
+        git_commit_and_push(work, [bundle], "Should not create a commit")  # identical content again
+        after = subprocess.run(["git", "-C", str(remote), "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout
+        self.assertEqual(before, after)
 
 
 if __name__ == "__main__":
