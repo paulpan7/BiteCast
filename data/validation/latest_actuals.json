@@ -7,19 +7,19 @@
   "actualDataStart": "2026-08-31",
   "actualDataThrough": "2026-09-02",
   "evaluatedThrough": "2026-09-02",
-  "syncedAt": "2026-09-02T22:07:57.924017Z",
+  "syncedAt": "2026-09-03T06:59:57.818229Z",
   "sourceDaysRefreshed": 14,
-  "downloadedTrips": 9,
-  "downloadedFish": 537,
-  "downloadedAnglers": 304,
+  "downloadedTrips": 11,
+  "downloadedFish": 611,
+  "downloadedAnglers": 364,
   "modelWasRetrained": false,
   "overall": {
-    "matchedWindows": 4,
-    "anglers": 178,
-    "mae": 0.8132,
-    "rmse": 0.8696,
-    "actualFishPerAngler": 1.9045,
-    "predictedFishPerAngler": 2.7343
+    "matchedWindows": 6,
+    "anglers": 238,
+    "mae": 1.0238,
+    "rmse": 1.1117,
+    "actualFishPerAngler": 1.7353,
+    "predictedFishPerAngler": 2.7064
   },
   "reportedDaily": [
     {
@@ -38,10 +38,10 @@
     },
     {
       "date": "2026-09-02",
-      "reports": 1,
-      "anglers": 29,
-      "fish": 46,
-      "fishPerAngler": 1.5862
+      "reports": 3,
+      "anglers": 89,
+      "fish": 120,
+      "fishPerAngler": 1.3483
     }
   ],
   "reportedTrips": [
@@ -347,6 +347,54 @@
     {
       "date": "2026-09-02",
       "period": "AM",
+      "anglers": 25,
+      "source_url": "https://www.sandiegofishreports.com/dock_totals/boats.php?date=2026-09-02",
+      "boat": "Dolphin",
+      "boat_path": "/charter_boats/dolphin.php",
+      "landing": "Fisherman's Landing",
+      "landing_path": "/landings/fishermans_landing.php",
+      "city": "San Diego, CA",
+      "species": [
+        {
+          "species": "Sand Bass",
+          "kept": 4,
+          "released": 0
+        },
+        {
+          "species": "Halibut",
+          "kept": 1,
+          "released": 0
+        },
+        {
+          "species": "Sculpin",
+          "kept": 2,
+          "released": 0
+        },
+        {
+          "species": "Yellowtail",
+          "kept": 10,
+          "released": 0
+        },
+        {
+          "species": "Calico Bass",
+          "kept": 2,
+          "released": 0
+        },
+        {
+          "species": "Bonito",
+          "kept": 25,
+          "released": 0
+        }
+      ],
+      "kept": 44,
+      "released": 0,
+      "encounters": 44,
+      "epa": 1.76,
+      "tripNo": 1
+    },
+    {
+      "date": "2026-09-02",
+      "period": "AM",
       "anglers": 29,
       "source_url": "https://www.sandiegofishreports.com/dock_totals/boats.php?date=2026-09-02",
       "boat": "New Seaforth",
@@ -396,6 +444,49 @@
       "encounters": 46,
       "epa": 1.586,
       "tripNo": 1
+    },
+    {
+      "date": "2026-09-02",
+      "period": "PM",
+      "anglers": 35,
+      "source_url": "https://www.sandiegofishreports.com/dock_totals/boats.php?date=2026-09-02",
+      "boat": "New Seaforth",
+      "boat_path": "/charter_boats/newseaforth.php",
+      "landing": "Seaforth Sportfishing",
+      "landing_path": "/landings/seaforth_sportfishing.php",
+      "city": "San Diego, CA",
+      "species": [
+        {
+          "species": "Sand Bass",
+          "kept": 1,
+          "released": 0
+        },
+        {
+          "species": "Barracuda",
+          "kept": 20,
+          "released": 0
+        },
+        {
+          "species": "Yellowtail",
+          "kept": 5,
+          "released": 0
+        },
+        {
+          "species": "Calico Bass",
+          "kept": 3,
+          "released": 0
+        },
+        {
+          "species": "Bonito",
+          "kept": 1,
+          "released": 0
+        }
+      ],
+      "kept": 30,
+      "released": 0,
+      "encounters": 30,
+      "epa": 0.857,
+      "tripNo": 1
     }
   ],
   "daily": [
@@ -409,11 +500,11 @@
     },
     {
       "date": "2026-09-02",
-      "matchedWindows": 1,
-      "anglers": 29,
-      "fish": 46,
-      "actualFishPerAngler": 1.5862,
-      "predictedFishPerAngler": 2.1932
+      "matchedWindows": 3,
+      "anglers": 89,
+      "fish": 120,
+      "actualFishPerAngler": 1.3483,
+      "predictedFishPerAngler": 2.4835
     }
   ],
   "matches": [
@@ -535,6 +626,51 @@
     },
     {
       "date": "2026-09-02",
+      "boat": "Dolphin",
+      "period": "AM",
+      "reports": 1,
+      "anglers": 25,
+      "fish": 44,
+      "actualFishPerAngler": 1.76,
+      "predictedFishPerAngler": 3.532,
+      "error": -1.772,
+      "actualSpecies": {
+        "Bonito": 25,
+        "Calico Bass": 2,
+        "Halibut": 1,
+        "Sand Bass": 4,
+        "Sculpin": 2,
+        "Yellowtail": 10
+      },
+      "predictedSpeciesFishPerAngler": {
+        "Barracuda": 0.0335,
+        "Black Seabass": 0.0001,
+        "Bluefin": 0.0001,
+        "Bonito": 0.4197,
+        "Cabezon": 0.001,
+        "Calico Bass": 0.8563,
+        "Dorado": 0.0004,
+        "Giant Squid": 0.0001,
+        "Halibut": 0.0037,
+        "Lingcod": 0.0044,
+        "Mackerel": 0.0035,
+        "Mako Shark": 0.0002,
+        "Rockfish": 1.5549,
+        "Sand Bass": 0.235,
+        "Sculpin": 0.1348,
+        "Sheephead": 0.0702,
+        "Skipjack": 0.0014,
+        "Spanish Jack": 0.0005,
+        "Triggerfish": 0.0,
+        "Vermilion Rockfish": 0.1522,
+        "White Seabass": 0.0058,
+        "Whitefish": 0.0112,
+        "Yellowfin": 0.0002,
+        "Yellowtail": 0.0428
+      }
+    },
+    {
+      "date": "2026-09-02",
       "boat": "New Seaforth",
       "period": "AM",
       "reports": 1,
@@ -572,6 +708,46 @@
         "White Seabass": 0.0004,
         "Whitefish": 0.1149,
         "Yellowtail": 0.0535
+      }
+    },
+    {
+      "date": "2026-09-02",
+      "boat": "New Seaforth",
+      "period": "PM",
+      "reports": 1,
+      "anglers": 35,
+      "fish": 30,
+      "actualFishPerAngler": 0.8571,
+      "predictedFishPerAngler": 1.9751,
+      "error": -1.118,
+      "actualSpecies": {
+        "Barracuda": 20,
+        "Bonito": 1,
+        "Calico Bass": 3,
+        "Sand Bass": 1,
+        "Yellowtail": 5
+      },
+      "predictedSpeciesFishPerAngler": {
+        "Barracuda": 0.0276,
+        "Bluefin": 0.0,
+        "Bonito": 0.1423,
+        "Cabezon": 0.0,
+        "Calico Bass": 1.2953,
+        "Dorado": 0.0029,
+        "Halibut": 0.0008,
+        "Lingcod": 0.0008,
+        "Mako Shark": 0.0,
+        "Pacific Mackerel": 0.0017,
+        "Rockfish": 0.2016,
+        "Sand Bass": 0.0527,
+        "Sculpin": 0.0125,
+        "Sheephead": 0.0363,
+        "Skipjack": 0.0004,
+        "Vermilion Rockfish": 0.0515,
+        "White Seabass": 0.0012,
+        "Whitefish": 0.0989,
+        "Yellowfin": 0.0001,
+        "Yellowtail": 0.0483
       }
     }
   ]
