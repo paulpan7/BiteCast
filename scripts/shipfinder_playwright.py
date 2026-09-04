@@ -105,7 +105,16 @@ def login(page):
     if not page.locator("#autologin").is_checked():
         page.locator("#autologin").check()
     page.locator("#submitBtn").click()
-    page.wait_for_load_state("networkidle")
+    # Not wait_for_load_state("networkidle") -- this is a live AIS map with a
+    # constant WebSocket position stream, so network activity may never
+    # actually go quiet (two consecutive runs timed out here at exactly this
+    # line, 2026-09-04, despite login otherwise working). Poll the same JS
+    # flag is_logged_in() checks directly instead of waiting on network
+    # quiescence as a proxy for it.
+    try:
+        page.wait_for_function("() => !!(window.config && window.config.auth && window.config.auth.IsLogin)", timeout=30_000)
+    except Exception:
+        pass  # fall through to the clear error below rather than a bare Playwright TimeoutError
     if not is_logged_in(page):
         raise RuntimeError("ShipFinder login did not succeed (wrong credentials, or the site changed its login form).")
     if not has_track_replay_permission(page):
@@ -151,7 +160,10 @@ def export_window(page, boat, start_date, end_date, out):
     page.locator("#dateSelect").fill(f"{start_date.isoformat()} 00:00")
     page.locator("#dateSelectEnd").fill(f"{end_date.isoformat()} 23:59")
     page.get_by_text("Search", exact=True).click()
-    page.wait_for_load_state("networkidle")
+    # Not wait_for_load_state("networkidle") -- see the same note in login()
+    # above; wait for the specific thing this step actually needs instead of
+    # network quiescence as a proxy for it.
+    page.get_by_text("Export", exact=True).wait_for(state="visible", timeout=30_000)
     with page.expect_download(timeout=90_000) as info:
         page.get_by_text("Export", exact=True).click()
     download = info.value
