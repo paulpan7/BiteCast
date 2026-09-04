@@ -275,10 +275,12 @@ def main():
 
     # Stable per-run jitter means a retry does not create a second random delay.
     # Skipped for a manual/on-demand run (FLEETCAST_SKIP_JITTER) -- a human
-    # watching a test run shouldn't wait up to 45 minutes for nothing to happen.
+    # watching a test run shouldn't wait up to 30 minutes for nothing to happen.
+    # Paired with the workflow's 10:00 PM cron, this lands the scrape
+    # somewhere in the 10:00-10:30 PM Pacific window each night.
     if not os.getenv("FLEETCAST_SKIP_JITTER"):
         now = datetime.now(TZ)
-        delay = int(hashlib.sha256(now.date().isoformat().encode()).hexdigest()[:8], 16) % (45 * 60)
+        delay = int(hashlib.sha256(now.date().isoformat().encode()).hexdigest()[:8], 16) % (30 * 60)
         time.sleep(delay)
 
     window_end = datetime.now(TZ)

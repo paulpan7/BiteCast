@@ -2,9 +2,10 @@ name: Sync boat tracks
 
 on:
   schedule:
-    # ~11:00 PM Pacific (PDT); shipfinder_playwright.py adds its own random
-    # jitter of up to 45 minutes on top of whenever this actually fires.
-    - cron: "00 06 * * *"
+    # ~10:00 PM Pacific (PDT); shipfinder_playwright.py adds its own random
+    # jitter of up to 30 minutes on top of whenever this actually fires, so
+    # the scrape lands somewhere in the 10:00-10:30 PM window each night.
+    - cron: "00 05 * * *"
   workflow_dispatch:
 
 permissions:
