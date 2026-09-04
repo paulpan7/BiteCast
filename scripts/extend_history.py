@@ -28,6 +28,7 @@ INDEX = ROOT / "index.html"
 CACHE = ROOT / "data" / "cache"
 FISH_CACHE = CACHE / "fish"
 NOAA_CACHE = CACHE / "noaa"
+CDIP_CACHE = CACHE / "cdip"
 MODEL_FREEZE_MARKER = ROOT / "data" / "validation" / "MODEL_FROZEN.json"
 BASE = "https://www.sandiegofishreports.com/dock_totals/boats.php"
 USER_AGENT = "BiteCast historical research refresh/1.0"
@@ -286,6 +287,80 @@ def load_noaa_station(station: str, years: range) -> list[tuple[dt.datetime, dic
     return rows
 
 
+def cdip_dataset_url(cdip_id: str, live: bool) -> str:
+    if live:
+        return f"https://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/realtime/{cdip_id}p1_rt.nc"
+    return f"https://thredds.cdip.ucsd.edu/thredds/dodsC/cdip/archive/{cdip_id}p1/{cdip_id}p1_historic.nc"
+
+
+def download_cdip_station(cdip_id: str, live: bool, count: int = 20000) -> Path | None:
+    """Fetch the most recent `count` wave samples (~1.5yr at CDIP's ~30min cadence)
+    for a CDIP buoy via its OPeNDAP ASCII interface.
+
+    Unlike NDBC's historical/stdmet archive -- only published once a calendar
+    year is finalized, which is why swellFt has been null since 2026-05-03 --
+    CDIP keeps its per-station "historic" file updated through the year, with a
+    rolling realtime file underneath that. This is the only reliable swell
+    source for the in-progress year until NDBC's archive catches up.
+    """
+    CDIP_CACHE.mkdir(parents=True, exist_ok=True)
+    tag = "rt" if live else "historic"
+    path = CDIP_CACHE / f"{cdip_id}p1_{tag}_{dt.date.today().isoformat()}.txt"
+    if path.exists() and path.stat().st_size > 100:
+        return path
+    base = cdip_dataset_url(cdip_id, live)
+    try:
+        dds = request_bytes(f"{base}.dds").decode("ascii", errors="replace")
+    except urllib.error.HTTPError as error:
+        if error.code == 404:
+            return None
+        raise
+    match = re.search(r"waveTime = (\d+)", dds)
+    if not match:
+        return None
+    total = int(match.group(1))
+    lo, hi = max(0, total - count), total - 1
+    query = f"waveTime%5B{lo}:1:{hi}%5D,waveHs%5B{lo}:1:{hi}%5D"
+    try:
+        payload = request_bytes(f"{base}.ascii?{query}")
+    except urllib.error.HTTPError as error:
+        if error.code == 404:
+            return None
+        raise
+    path.write_bytes(payload)
+    return path
+
+
+def parse_cdip_ascii(path: Path) -> list[tuple[dt.datetime, dict]]:
+    text = path.read_text(encoding="ascii", errors="replace")
+    columns = {}
+    for name in ("waveTime", "waveHs"):
+        match = re.search(rf"{name}\[\d+\]\s*\n([^\n]+)", text)
+        if not match:
+            return []
+        columns[name] = [item.strip() for item in match.group(1).split(",")]
+    rows = []
+    for epoch_text, hs_text in zip(columns["waveTime"], columns["waveHs"]):
+        try:
+            epoch, hs_meters = int(epoch_text), float(hs_text)
+        except ValueError:
+            continue
+        if not (0 < hs_meters < 15):  # CDIP flags bad/missing samples with sentinel values
+            continue
+        rows.append((dt.datetime.fromtimestamp(epoch, tz=dt.timezone.utc), {"WVHT": hs_meters}))
+    return rows
+
+
+def load_cdip_station(cdip_id: str) -> list[tuple[dt.datetime, dict]]:
+    rows: list[tuple[dt.datetime, dict]] = []
+    for live in (False, True):
+        path = download_cdip_station(cdip_id, live)
+        if path:
+            rows.extend(parse_cdip_ascii(path))
+    rows.sort(key=lambda item: item[0])
+    return rows
+
+
 def download_tide_predictions(year: int) -> Path:
     """Download hourly NOAA CO-OPS predictions for the San Diego tide gauge."""
     NOAA_CACHE.mkdir(parents=True, exist_ok=True)
@@ -353,11 +428,15 @@ def nearest(observations: list[tuple[dt.datetime, dict]], timestamps: list[dt.da
 def build_analysis_rows(trips: list[dict], old_rows: list[dict], start_year: int, end_year: int) -> list[dict]:
     years = range(start_year, end_year + 1)
     ljac = load_noaa_station("ljac1", years)
-    waves = load_noaa_station("46235", years)
-    outer_waves = load_noaa_station("46225", years)
+    waves = load_noaa_station("46232", years)  # Point Loma South -- closest buoy to the sportfishing departure grounds
+    outer_waves = load_noaa_station("46225", years)  # Torrey Pines Outer -- fallback
+    cdip_waves = load_cdip_station("191") if end_year >= dt.date.today().year else []  # CDIP-native Point Loma South
+    cdip_outer_waves = load_cdip_station("100") if end_year >= dt.date.today().year else []  # CDIP-native Torrey Pines Outer
     ljac_times = [item[0] for item in ljac]
     wave_times = [item[0] for item in waves]
     outer_wave_times = [item[0] for item in outer_waves]
+    cdip_wave_times = [item[0] for item in cdip_waves]
+    cdip_outer_wave_times = [item[0] for item in cdip_outer_waves]
     old = {(row["date"], row["period"]): row for row in old_rows}
     fish: dict[tuple, list[int]] = defaultdict(lambda: [0] * len(ANALYSIS_SPECIES))
     for trip in trips:
@@ -375,6 +454,8 @@ def build_analysis_rows(trips: list[dict], old_rows: list[dict], start_year: int
         met = nearest(ljac, ljac_times, target)
         wave = nearest(waves, wave_times, target)
         outer_wave = nearest(outer_waves, outer_wave_times, target)
+        cdip_wave = nearest(cdip_waves, cdip_wave_times, target)
+        cdip_outer_wave = nearest(cdip_outer_waves, cdip_outer_wave_times, target)
         row = dict(old.get(key, {"date": date_text, "period": period}))
         row["fish"] = fish[key]
         if "ATMP" in met and "airTempF" not in row:
@@ -384,7 +465,7 @@ def build_analysis_rows(trips: list[dict], old_rows: list[dict], start_year: int
             row["waterTempF"] = round(water * 9 / 5 + 32, 3)
         if "PRES" in met and "pressureHpa" not in row:
             row["pressureHpa"] = round(met["PRES"], 3)
-        wave_height = wave.get("WVHT", outer_wave.get("WVHT"))
+        wave_height = wave.get("WVHT", outer_wave.get("WVHT", cdip_wave.get("WVHT", cdip_outer_wave.get("WVHT"))))
         if wave_height is not None and "swellFt" not in row:
             row["swellFt"] = round(wave_height * 3.28084, 3)
         result.append(row)
