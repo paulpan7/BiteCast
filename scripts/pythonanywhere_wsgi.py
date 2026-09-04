@@ -1,28 +1,22 @@
-"""BiteCast static-site launcher for the PythonAnywhere WSGI configuration.
+"""BiteCast WSGI entry point for the PythonAnywhere web app.
 
-GitHub Pages is the canonical site; this just mirrors the same static
-checkout on PythonAnywhere. There's no build step and nothing dynamic --
-every request is served straight from files already on disk, kept current
-by a separate `git pull` (see README.md's PythonAnywhere section), not by
-anything this launcher does at request time.
+Point that account's WSGI config (/var/www/<domain>_wsgi.py) at this module --
+see README.md's PythonAnywhere section.
+
+This used to serve the site as a pure static mirror, with GitHub Pages as
+canonical. It now exposes the Flask application in scripts/app.py, which serves
+the same page shell off disk but backs its data with MySQL instead of a 10.65 MB
+JSON literal inlined into index.html.
+
+Database credentials come from the environment (BITECAST_DB_*), never the repo;
+see scripts/db.py. The web app needs those set in the PythonAnywhere dashboard.
 """
+
+import sys
 from pathlib import Path
 
-from flask import Flask, send_from_directory
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-SITE_DIR = Path(__file__).resolve().parent.parent
+from app import app as application  # noqa: E402  (path setup must precede import)
 
-app = Flask(__name__, static_folder=None)
-
-
-@app.route("/")
-def index():
-    return send_from_directory(SITE_DIR, "index.html")
-
-
-@app.route("/<path:path>")
-def static_files(path):
-    return send_from_directory(SITE_DIR, path)
-
-
-application = app
+__all__ = ["application"]

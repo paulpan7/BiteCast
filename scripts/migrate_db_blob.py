@@ -46,6 +46,7 @@ TABLES_IN_LOAD_ORDER = [
     "catch_rollup",
     "boat_profile_period",
     "boat_profile",
+    "forecast_period",
     "trip_species",
     "trip",
     "analysis_row",
@@ -179,6 +180,32 @@ def load_analysis_rows(cur, rows: list[dict]) -> None:
         cur.executemany(statement, payload[start:start + BATCH])
 
 
+def load_forecast(cur, blob: dict) -> int:
+    generated = blob.get("forecastGenerated")
+    if generated:
+        generated = generated.replace("T", " ").split("+")[0].split(".")[0]
+    rows = []
+    for day in blob.get("forecast", []):
+        for period in day["periods"]:
+            rows.append((
+                day["date"], period["period"], period.get("epa"), period.get("score"),
+                period.get("typicalLow"), period.get("typicalHigh"),
+                period.get("planningLow"), period.get("planningHigh"),
+                period.get("rangeN"), period.get("windKt"), period.get("windDir"),
+                period.get("seasFt"), period.get("periodSec"), period.get("sstF"),
+                generated,
+            ))
+    if rows:
+        cur.executemany(
+            "INSERT INTO forecast_period (obs_date, period, epa, score, typical_low,"
+            " typical_high, planning_low, planning_high, range_n, wind_kt, wind_dir,"
+            " seas_ft, period_sec, sst_f, generated_at)"
+            " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            rows,
+        )
+    return len(rows)
+
+
 def rebuild_catch_rollup(cur) -> int:
     """Replaces the positional fish[10] array, aggregated straight from the trips."""
     cur.execute(
@@ -300,6 +327,8 @@ def main() -> None:
                 print(f"loaded {len(trips)} trips, {species_count} trip_species rows", flush=True)
                 load_analysis_rows(cur, analysis_rows)
                 print(f"loaded {len(analysis_rows)} analysis rows", flush=True)
+                forecast_rows = load_forecast(cur, blob)
+                print(f"loaded {forecast_rows} forecast periods", flush=True)
                 rollup = rebuild_catch_rollup(cur)
                 print(f"rebuilt catch_rollup: {rollup} rows", flush=True)
                 load_boat_profiles(cur, trips, boat_ids, landing_ids)
