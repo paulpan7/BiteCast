@@ -169,9 +169,15 @@ def export_window(page, boat, start_date, end_date, out):
     # Not wait_for_load_state("networkidle") -- see the same note in login()
     # above; wait for the specific thing this step actually needs instead of
     # network quiescence as a proxy for it.
-    page.get_by_text("Export", exact=True).wait_for(state="visible", timeout=30_000)
+    # get_by_text("Export") is ambiguous (confirmed via a real strict-mode
+    # violation, 2026-09-04): a generic `<input type=button value=Export>`
+    # elsewhere on the page also matches. The real one is this Track query
+    # panel's link, onclick=shipInfoLayer.exportLine() -- get_by_role pins it
+    # to that <a>, not the unrelated button.
+    export_link = page.get_by_role("link", name="Export")
+    export_link.wait_for(state="visible", timeout=30_000)
     with page.expect_download(timeout=90_000) as info:
-        page.get_by_text("Export", exact=True).click()
+        export_link.click()
     download = info.value
     target = out / f"{slug(boat['boat_name'])}-{start_date.isoformat()}_{end_date.isoformat()}.csv"
     download.save_as(str(target))
