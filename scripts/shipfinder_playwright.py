@@ -317,8 +317,18 @@ def main():
                     "points": merge_points(existing, fresh, retention_cutoff),
                 }
                 manifest["boats"].append({**boat, "status": "ok", "file": str(path.relative_to(ROOT)), "newReports": len(fresh)})
+                print(f"ok    {boat['boat_name']} ({mmsi}): {len(fresh)} new / {len(points)} in export", flush=True)
             except Exception as exc:
                 manifest["boats"].append({**boat, "status": "error", "error": str(exc)})
+                # Per-boat failures must not be silent: this loop's only other
+                # trace is the manifest file, which lives on the GitHub Actions
+                # runner and is never uploaded or committed anywhere -- without
+                # this print, a boat (or every boat) failing every night is
+                # indistinguishable in the logs from a quiet, uneventful run.
+                print(f"error {boat['boat_name']} ({boat['mmsi']}): {type(exc).__name__}: {exc}", flush=True)
+        ok = sum(1 for b in manifest["boats"] if b["status"] == "ok")
+        print(f"summary: {ok}/{len(manifest['boats'])} boats ok, "
+              f"{sum(b.get('newReports', 0) for b in manifest['boats'] if b['status'] == 'ok')} new reports total", flush=True)
         browser.close()
 
     bundle["generated"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
