@@ -139,16 +139,24 @@ def ensure_logged_in(context, page):
               "git repo (never commit a session file: it's equivalent to a login token).")
 
 def export_window(page, boat, start_date, end_date, out):
-    """Confirmed against a real account's debug capture, 2026-09-04 (see
-    data/fleetcast/raw/2026-09-04/debug/ from the run that caught this):
-    the vessel detail panel's real button is "Ship Track" (id=ship_track_click),
-    NOT "Track playback" (id=track_playback_click) -- that text belongs to an
-    unrelated main-nav dropdown item (class includes must_login) that stays
-    hidden through this whole flow, which is why every single boat, every
-    single night, failed at an identical 30s timeout waiting for it to become
-    visible: the click target was simply wrong, not a permissions or login
-    issue. "Ship Track" opens the same #dateSelect/#dateSelectEnd date-range
-    panel the rest of this flow already expects.
+    """Confirmed against a real account's debug captures, 2026-09-04 (see
+    data/fleetcast/raw/2026-09-04/debug/ from the runs that caught these):
+
+    1. The vessel detail panel's real button is "Ship Track" (id=ship_track_click),
+       NOT "Track playback" (id=track_playback_click) -- that text belongs to
+       an unrelated main-nav dropdown item (class includes must_login) that
+       stays hidden through this whole flow, which is why every single boat,
+       every single night, failed at an identical 30s timeout waiting for it
+       to become visible: the click target was simply wrong.
+    2. "Ship Track" opens a "Track query" panel with #dateSelect/#dateSelectEnd
+       -- real <input>s, but genuinely `readonly` (presumably driven by a JS
+       date-picker widget, not typed into directly), so .fill() correctly
+       refused them and timed out. They come pre-populated with a default
+       range that already spans several days up through right now (observed:
+       ~3.75 days), comfortably wider than WINDOW_HOURS -- so rather than
+       fight the readonly picker, this just accepts that default and lets the
+       fresh=[...] filter below trim the export down to the real target
+       window regardless of how wide the exported CSV itself is.
     """
     search = page.get_by_placeholder("Search ship, port...")
     search.click()
@@ -157,8 +165,6 @@ def export_window(page, boat, start_date, end_date, out):
     result = page.locator(f'a.ship_ico[mmsi="{boat["mmsi"]}"]') if boat["mmsi"] else page.locator(".ship_list a.ship_ico")
     result.first.click()
     page.locator("#ship_track_click").click()
-    page.locator("#dateSelect").fill(f"{start_date.isoformat()} 00:00")
-    page.locator("#dateSelectEnd").fill(f"{end_date.isoformat()} 23:59")
     page.get_by_text("Search", exact=True).click()
     # Not wait_for_load_state("networkidle") -- see the same note in login()
     # above; wait for the specific thing this step actually needs instead of
