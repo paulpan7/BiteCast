@@ -3,6 +3,7 @@ __pycache__/
 scripts/__pycache__/
 .DS_Store
 .claude/
+.venv/
 # Defense in depth: a ShipFinder login session is equivalent to a password
 # and should live outside this repo (see README), but never let one land in
 # git even if SHIPFINDER_AUTH_STATE is ever pointed here by mistake.
