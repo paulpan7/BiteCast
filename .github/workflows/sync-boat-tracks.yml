@@ -43,12 +43,14 @@ jobs:
           FLEETCAST_MMSI_FILE: data/fleetcast/mmsi.csv
           FLEETCAST_SKIP_JITTER: ${{ github.event_name == 'workflow_dispatch' && '1' || '' }}
         run: python3 scripts/shipfinder_playwright.py
-      - name: Upload run manifest (per-boat ok/error detail, for when the run log isn't enough)
+      - name: Upload run manifest and debug capture (per-boat ok/error detail, plus a screenshot/DOM dump from the first failure -- for when the run log isn't enough)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: shipfinder-manifest
-          path: data/fleetcast/manifests/*.json
+          path: |
+            data/fleetcast/manifests/*.json
+            data/fleetcast/raw/*/debug/
           retention-days: 14
           if-no-files-found: ignore
       - name: Publish refreshed bundle

@@ -326,6 +326,21 @@ def main():
                 # this print, a boat (or every boat) failing every night is
                 # indistinguishable in the logs from a quiet, uneventful run.
                 print(f"error {boat['boat_name']} ({boat['mmsi']}): {type(exc).__name__}: {exc}", flush=True)
+                # Capture the live page state on the FIRST failure only (every
+                # boat fails the same way, so 24 near-identical captures would
+                # just bloat the artifact) -- a screenshot plus the raw DOM
+                # lets a run be debugged from its uploaded artifact alone, with
+                # no ShipFinder credentials or live browser needed to see what
+                # the automation actually hit.
+                if not any(b.get("debugCapture") for b in manifest["boats"]):
+                    debug_dir = out / "debug"
+                    debug_dir.mkdir(parents=True, exist_ok=True)
+                    try:
+                        page.screenshot(path=str(debug_dir / "failure.png"), full_page=True)
+                        (debug_dir / "failure.html").write_text(page.content(), encoding="utf-8")
+                        manifest["boats"][-1]["debugCapture"] = str(debug_dir.relative_to(ROOT))
+                    except Exception as capture_exc:
+                        print(f"  (debug capture also failed: {capture_exc})", flush=True)
         ok = sum(1 for b in manifest["boats"] if b["status"] == "ok")
         print(f"summary: {ok}/{len(manifest['boats'])} boats ok, "
               f"{sum(b.get('newReports', 0) for b in manifest['boats'] if b['status'] == 'ok')} new reports total", flush=True)
