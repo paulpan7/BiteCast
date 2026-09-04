@@ -31,7 +31,7 @@ The input file is intentionally kept outside the repository on PythonAnywhere.
 Expected columns: boat_name,mmsi (a header row is optional).
 
 LOGIN (confirmed against the real site, 2026-09-03): passive vessel search
-and the 24h/3-day track view work while logged out, but "Track playback" --
+and the 24h/3-day track view work while logged out, but "Ship Track" --
 what the CSV export lives under -- requires an account, and the site's own
 JS checks a *second*, separate `TrackReplay` permission after login, so a
 plain free account may still be refused (contact shipfinder@elaneglobal.com
@@ -130,12 +130,16 @@ def ensure_logged_in(context, page):
               "git repo (never commit a session file: it's equivalent to a login token).")
 
 def export_window(page, boat, start_date, end_date, out):
-    """Confirmed against the real site 2026-09-03, up through the login gate
-    on "Track playback" (see login() above) -- ensure_logged_in() must run
-    first. The exact click path from there to the #dateSelect/#dateSelectEnd
-    date-range panel was traced via the page's own JS (shipInfoLayer /
-    trackreplay), not fully driven end-to-end with a real account, so treat
-    the first scheduled run as a supervised (non-headless) smoke test.
+    """Confirmed against a real account's debug capture, 2026-09-04 (see
+    data/fleetcast/raw/2026-09-04/debug/ from the run that caught this):
+    the vessel detail panel's real button is "Ship Track" (id=ship_track_click),
+    NOT "Track playback" (id=track_playback_click) -- that text belongs to an
+    unrelated main-nav dropdown item (class includes must_login) that stays
+    hidden through this whole flow, which is why every single boat, every
+    single night, failed at an identical 30s timeout waiting for it to become
+    visible: the click target was simply wrong, not a permissions or login
+    issue. "Ship Track" opens the same #dateSelect/#dateSelectEnd date-range
+    panel the rest of this flow already expects.
     """
     search = page.get_by_placeholder("Search ship, port...")
     search.click()
@@ -143,7 +147,7 @@ def export_window(page, boat, start_date, end_date, out):
     page.wait_for_timeout(600)  # results are debounced, not immediate
     result = page.locator(f'a.ship_ico[mmsi="{boat["mmsi"]}"]') if boat["mmsi"] else page.locator(".ship_list a.ship_ico")
     result.first.click()
-    page.get_by_text("Track playback", exact=True).first.click()
+    page.locator("#ship_track_click").click()
     page.locator("#dateSelect").fill(f"{start_date.isoformat()} 00:00")
     page.locator("#dateSelectEnd").fill(f"{end_date.isoformat()} 23:59")
     page.get_by_text("Search", exact=True).click()
