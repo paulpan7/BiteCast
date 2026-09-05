@@ -24,6 +24,69 @@ from pythonanywhere_wsgi import application
 ```
 It reuses whatever virtualenv is already configured for that web app in the PythonAnywhere dashboard (just needs Flask). Keep the mirror current with a Scheduled Task running `git -C /home/<user>/BiteCast pull --ff-only origin main` on some cadence -- no credential needed while the repo stays public. A WSGI config change needs a manual "Reload" from the PythonAnywhere dashboard's Web tab to take effect; nothing triggers that automatically from here.
 
+### Standing up MySQL on PythonAnywhere
+
+This moves the dataset out of `index.html` and into a database. Nothing below changes the
+canonical site until the last step, so it is safe to work through and stop partway.
+
+**1. Create the database.** Dashboard → **Databases** tab. Set a MySQL password if this is the
+first time (it is separate from the login password), then create a database named `bitecast`.
+PythonAnywhere prefixes it, so the real name becomes `<user>$bitecast`, and the host is
+`<user>.mysql.pythonanywhere-services.com`. Both appear on that page -- use what it shows rather
+than the placeholders here.
+
+**2. Check out the code and install dependencies**, in a Bash console:
+```bash
+cd ~/BiteCast && git pull --ff-only origin main
+python3 -m venv .venv && .venv/bin/pip install -r requirements-server.txt
+```
+
+**3. Point the scripts at the database.** These are read from the environment, never the repo:
+```bash
+export BITECAST_DB_HOST='<user>.mysql.pythonanywhere-services.com'
+export BITECAST_DB_USER='<user>'
+export BITECAST_DB_PASSWORD='<the MySQL password from step 1>'
+export BITECAST_DB_NAME='<user>$bitecast'
+```
+
+**4. Load the schema and migrate the data:**
+```bash
+mysql -u "$BITECAST_DB_USER" -h "$BITECAST_DB_HOST" -p "$BITECAST_DB_NAME" < scripts/schema.sql
+.venv/bin/python scripts/migrate_db_blob.py
+.venv/bin/python scripts/model_fit.py --status live
+```
+`migrate_db_blob.py` reads the `const DB=` literal out of `index.html`, so it has to run from a
+checkout that still has it -- that is `main`. Running it from the `pythonanywhere-frontend`
+branch, where the literal has been removed, will fail with nothing to migrate.
+
+It prints its own verification and exits non-zero if anything failed: trip, weather and species
+counts, null counts per weather column, and the positional `fish[]` arrays regenerated from
+`catch_rollup` and compared against the blob.
+
+**5. Wire up the web app.** Web tab → set the virtualenv to `/home/<user>/BiteCast/.venv`, then
+point the WSGI config at the app. PythonAnywhere has no environment-variable UI for web apps, so
+set them in the WSGI file itself, above the import:
+```python
+import os, sys
+os.environ.update({
+    "BITECAST_DB_HOST": "<user>.mysql.pythonanywhere-services.com",
+    "BITECAST_DB_USER": "<user>",
+    "BITECAST_DB_PASSWORD": "<the MySQL password>",
+    "BITECAST_DB_NAME": "<user>$bitecast",
+})
+sys.path.insert(0, "/home/<user>/BiteCast/scripts")
+from pythonanywhere_wsgi import application
+```
+That file sits outside the repo, which is where the password should stay. Hit **Reload**, then
+check `https://<user>.pythonanywhere.com/api/health` -- it returns `{"ok": true, "trips": N}`, or
+an explicit error if the database configuration is wrong.
+
+**6. Only then switch the front end.** Up to this point the site still serves the embedded
+literal and works exactly as before. The `pythonanywhere-frontend` branch replaces that literal
+with a `<script src="api/db.js">`, taking `index.html` from 10.86 MB to 0.21 MB -- but it makes
+the page depend on the API, so it will not work as a static file and must not go to GitHub Pages.
+Deploy it to PythonAnywhere only, and only once `/api/health` is good.
+
 ## Fleetcast boat tracks
 
 `scripts/shipfinder_playwright.py` runs nightly via **GitHub Actions** (`.github/workflows/sync-boat-tracks.yml`, ~11:00 PM Pacific, free for this public repo -- no paid plan needed). It does **not** run on PythonAnywhere: real headless Chromium can't launch there at all, confirmed directly -- Playwright's browser process dies immediately on `execve()` with a kernel-delivered `SIGTRAP` (`si_code=SI_KERNEL`), the signature of a seccomp filter blocking the launch outright, tried against both the full Chromium and the lighter headless-shell binary, with `--no-sandbox` already passed either way. This is a platform-level restriction on PythonAnywhere's consoles and Scheduled Tasks, not something fixable with flags or missing packages (`ldd` shows no missing libraries).
