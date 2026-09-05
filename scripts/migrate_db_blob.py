@@ -42,7 +42,12 @@ INDEX = ROOT / "index.html"
 BATCH = 2000
 
 # Order matters: children before parents.
-TABLES_IN_LOAD_ORDER = [
+# Fact tables, children before parents. These are cleared and reloaded on every
+# run. Vocabularies (landing, boat, species) are deliberately NOT here: they are
+# upserted instead, so their AUTO_INCREMENT ids stay stable. model_coef and
+# model_residual store boat_id, and a re-migration that renumbered boats would
+# silently misattribute every stored coefficient.
+FACT_TABLES_IN_DELETE_ORDER = [
     "catch_rollup",
     "boat_profile_period",
     "boat_profile",
@@ -50,9 +55,6 @@ TABLES_IN_LOAD_ORDER = [
     "trip_species",
     "trip",
     "analysis_row",
-    "species",
-    "boat",
-    "landing",
 ]
 
 
@@ -72,19 +74,36 @@ def load_blob(index_path: Path) -> dict:
     return parsed
 
 
-def truncate_all(cur) -> None:
+def clear_facts(cur) -> None:
+    """Empty the fact tables inside the caller's transaction.
+
+    DELETE, not TRUNCATE. TRUNCATE is DDL: it forces an implicit commit and
+    cannot be rolled back (verified -- a TRUNCATE inside a transaction survives
+    ROLLBACK). That is harmless for a one-off import but wrong for a scheduled
+    job on a live site, because it opens a window where the API serves an empty
+    database to whoever happens to load the page mid-sync. With DELETE the whole
+    reload commits atomically: readers see the old data or the new, never
+    nothing.
+    """
     cur.execute("SET FOREIGN_KEY_CHECKS = 0")
-    for table in TABLES_IN_LOAD_ORDER:
-        cur.execute(f"TRUNCATE TABLE {table}")
+    for table in FACT_TABLES_IN_DELETE_ORDER:
+        cur.execute(f"DELETE FROM {table}")
     cur.execute("SET FOREIGN_KEY_CHECKS = 1")
 
 
 def load_vocabularies(cur, trips: list[dict]) -> tuple[dict, dict, dict]:
+    """Upsert the vocabularies and return their name -> id maps.
+
+    Upsert rather than reload, so a boat keeps the same boat_id run after run.
+    model_coef and model_residual reference boat_id, so renumbering here would
+    quietly reassign every stored coefficient to the wrong boat.
+    """
     landings = {}
     for trip in trips:
         landings.setdefault(trip["landing"], (trip.get("landing_path"), trip.get("city")))
     cur.executemany(
-        "INSERT INTO landing (name, landing_path, city) VALUES (%s, %s, %s)",
+        "INSERT INTO landing (name, landing_path, city) VALUES (%s, %s, %s) AS new"
+        " ON DUPLICATE KEY UPDATE landing_path = new.landing_path, city = new.city",
         [(name, path, city) for name, (path, city) in sorted(landings.items())],
     )
     cur.execute("SELECT name, landing_id FROM landing")
@@ -94,7 +113,8 @@ def load_vocabularies(cur, trips: list[dict]) -> tuple[dict, dict, dict]:
     for trip in sorted(trips, key=lambda t: (t["date"], t["period"])):
         boats[trip["boat"]] = (trip.get("boat_path"), trip["landing"])
     cur.executemany(
-        "INSERT INTO boat (name, boat_path, landing_id) VALUES (%s, %s, %s)",
+        "INSERT INTO boat (name, boat_path, landing_id) VALUES (%s, %s, %s) AS new"
+        " ON DUPLICATE KEY UPDATE boat_path = new.boat_path, landing_id = new.landing_id",
         [(name, path, landing_ids[landing]) for name, (path, landing) in sorted(boats.items())],
     )
     cur.execute("SELECT name, boat_id FROM boat")
@@ -105,7 +125,8 @@ def load_vocabularies(cur, trips: list[dict]) -> tuple[dict, dict, dict]:
     names = {item["species"] for trip in trips for item in trip["species"]}
     names.update(ANALYSIS_SPECIES)
     cur.executemany(
-        "INSERT INTO species (name, analysis_pos) VALUES (%s, %s)",
+        "INSERT INTO species (name, analysis_pos) VALUES (%s, %s) AS new"
+        " ON DUPLICATE KEY UPDATE analysis_pos = new.analysis_pos",
         [(name, positions.get(name)) for name in sorted(names)],
     )
     cur.execute("SELECT name, species_id FROM species")
@@ -329,7 +350,7 @@ def main() -> None:
     try:
         with connection.cursor() as cur:
             if not args.verify_only:
-                truncate_all(cur)
+                clear_facts(cur)
                 landing_ids, boat_ids, species_ids = load_vocabularies(cur, trips)
                 print(f"vocabularies: {len(landing_ids)} landings, {len(boat_ids)} boats,"
                       f" {len(species_ids)} species", flush=True)

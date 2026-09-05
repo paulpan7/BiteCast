@@ -189,6 +189,42 @@ buoy-measured significant wave height.
 Without this job the forecast goes stale silently: once its last day passes, every day falls through
 to the seasonal-climatology outlook with nothing in the interface saying so.
 
+### Keeping PythonAnywhere in sync
+
+Nothing connects git to MySQL on its own. The scrapers and the forecast job write `index.html` and
+push; GitHub Pages picks that up automatically, but PythonAnywhere's database keeps serving whatever
+snapshot it was loaded with and drifts further every day. That gap is what `scripts/pa_refresh.sh`
+closes: it pulls, reloads MySQL from the refreshed `index.html`, and refits the model.
+
+Set it up once. Credentials in a file outside the repo:
+```bash
+cat > ~/.fleetcast_env <<'EOF'
+export FLEETCAST_DB_HOST='<user>.mysql.pythonanywhere-services.com'
+export FLEETCAST_DB_USER='<user>'
+export FLEETCAST_DB_NAME='<user>$fleetcast'
+export FLEETCAST_DB_PASSWORD="$(cat ~/.fleetcast_db_password)"
+EOF
+chmod 600 ~/.fleetcast_env
+```
+Then a scheduled task (Tasks tab) running `/home/<user>/BiteCast/scripts/pa_refresh.sh`, timed a
+little after the forecast job's 12:30 and 00:30 UTC so it picks up each refresh. It logs a
+timestamped line per stage and exits non-zero on failure -- a missing env file, a missing
+virtualenv, or a database that will not accept the credentials -- so a broken run shows up as a
+failed task instead of silently doing nothing.
+
+Running it by hand is the same command, and it is safe to run repeatedly.
+
+Two properties make it safe to run unattended against a live site:
+
+- **The reload is atomic.** `migrate_db_blob.py` clears the fact tables with DELETE inside the
+  transaction that reloads them, so a visitor mid-sync sees the old data or the new, never a
+  half-empty database. TRUNCATE would be faster but is DDL: it forces an implicit commit and cannot
+  be rolled back, which would expose an empty database for the length of the reload.
+- **Ids stay stable.** The vocabularies (landing, boat, species) are upserted rather than reloaded,
+  so a boat keeps its `boat_id` run after run. `model_coef` and `model_residual` reference
+  `boat_id`, and a re-sync that renumbered boats would silently reassign every stored coefficient to
+  the wrong boat.
+
 The per-boat model uses sea-surface temperature, swell height, signed NOAA half-day tide change, AM/PM, and that boat's recent 12-trip catch state. Tide change is the predicted level at the end of the half-day minus the level at its start: positive is rising and negative is falling. The model does not use month, season, day-of-year, or year as a predictor. Inputs are scaled and their coefficients are learned from training trips; they are not assigned fixed percentage weights. Ridge regularization with λ = 12 shrinks weak or noisy effects toward 0, and fish per angler is capped at 20 during fitting so isolated extreme reports cannot dominate the forecast. In the chronological fleet test, the signed tide term has low influence: MAE is 2.0529 and RMSE is 2.7142 fish per angler, versus 2.0502 and 2.7112 without tide.
 
 Validation is strictly chronological. The validation fit uses 2018–2024 weather-matched trips, then faces 2025–2026 trips that were never used for fitting. Boats with at least 20 matched training trips use a boat-specific validation fit. Other boats use the shared fleet fit. The page computes and displays fleet holdout MAE, RMSE, within-±2 coverage, and interval coverage from the embedded data when it loads. LJAC1 observations extend through the full archive; station 46235 wave history begins in 2018, so 2017 contributes to catch history but not the swell-based model fit.
