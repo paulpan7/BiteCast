@@ -153,11 +153,41 @@ The **Analysis** tab compares catch with observed weather and signed half-day ti
 
 - Validated forecasts: every boat with reported half-day history
 - Sparse-history policy: use the chronologically validated shared fleet model
-- Historical coastal weather: NOAA NDBC station LJAC1
-- Fallback swell and sea temperature: NOAA NDBC station 46225
+- Historical coastal weather: NOAA NDBC station LJAC1 (its real-time feed now 404s; 46225 carries it)
+- Primary swell and sea temperature: NOAA NDBC station 46232, Point Loma South
+- Fallback swell and sea temperature: NOAA NDBC station 46225, Torrey Pines Outer
+- Current-year swell: CDIP stations 191 and 100, the same two buoys published through Scripps
 - Signed half-day predicted tide change: NOAA CO-OPS San Diego station 9410170
-- Historical nearshore waves: NOAA NDBC station 46235
 - 7-day inputs: NWS SGX marine forecast gridpoint 53,12
+
+### Keeping the 7-day forecast current
+
+`scripts/refresh_forecast.py` rewrites `DB.forecast` from NOAA sources and runs twice daily via
+`.github/workflows/refresh-forecast.yml` (~5:30 AM and ~5:30 PM Pacific). It needs no secrets --
+both sources are public -- and no dependencies beyond the standard library.
+
+It writes weather only, not predictions. The page recomputes catch estimates itself: `boatForecast()`
+reads `sstF` and `seasFt`, derives the tide change, and calls `modelPredict`. The `epa`/`score`
+fields stored beside them are vestigial, recomputed on every load, and `.score` is read nowhere.
+
+Waves, wave period, wind speed and wind direction come from the NWS marine grid, averaged over the
+same 6-12 and 12-18 local windows the training rows use. Sea-surface temperature comes from the most
+recent NDBC buoy reading, carried forward, since NWS does not forecast water temperature.
+
+That buoy choice is deliberate. `waterTempF` is a model *feature*, so the forecast has to sample it
+the way the training data did. Buoy 46225 and the CO-OPS tide gauge at 9410170 disagree by about 4F
+at any given moment -- open water versus a pier inside a bay -- and only the buoy sits inside the
+range the model was fitted on. Feeding it the gauge would shift a live input off the distribution
+the model learned.
+
+Sanity check on the source: NWS grid wave heights match what the buoys are measuring at the same
+time (3.2-3.8 ft forecast against 3.3-4.3 ft observed, with recent training rows at 3.2-4.3 ft).
+They read about a foot below the Coastal Waters Forecast text for the same day, which is expected --
+that text quotes a deliberately conservative range for mariners, while the model was trained on
+buoy-measured significant wave height.
+
+Without this job the forecast goes stale silently: once its last day passes, every day falls through
+to the seasonal-climatology outlook with nothing in the interface saying so.
 
 The per-boat model uses sea-surface temperature, swell height, signed NOAA half-day tide change, AM/PM, and that boat's recent 12-trip catch state. Tide change is the predicted level at the end of the half-day minus the level at its start: positive is rising and negative is falling. The model does not use month, season, day-of-year, or year as a predictor. Inputs are scaled and their coefficients are learned from training trips; they are not assigned fixed percentage weights. Ridge regularization with λ = 12 shrinks weak or noisy effects toward 0, and fish per angler is capped at 20 during fitting so isolated extreme reports cannot dominate the forecast. In the chronological fleet test, the signed tide term has low influence: MAE is 2.0529 and RMSE is 2.7142 fish per angler, versus 2.0502 and 2.7112 without tide.
 

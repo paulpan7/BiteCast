@@ -1,0 +1,57 @@
+name: Refresh marine forecast
+
+on:
+  schedule:
+    # Twice daily, ~5:30 AM and ~5:30 PM Pacific (PDT). The NWS grid updates
+    # roughly hourly, so a single daily run would leave the forward-looking
+    # half of the product up to 24 hours stale; two runs bracket the times
+    # people actually plan trips -- the morning of, and the evening before.
+    - cron: "30 12 * * *"
+    - cron: "30 00 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-marine-forecast
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # No pip install: refresh_forecast.py is stdlib-only, and both NOAA
+      # sources are public, so this job needs no secrets either.
+      - name: Fetch NWS marine grid and NDBC water temperature
+        run: python3 scripts/refresh_forecast.py
+      - name: Publish refreshed forecast
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if git diff --cached --quiet; then
+            echo "No changes to publish"
+            exit 0
+          fi
+          git commit -m "Refresh 7-day marine forecast"
+          # main can move between this job's checkout and this push (the
+          # validation-actuals or boat-tracks job landing mid-run) -- rebase
+          # onto the latest and retry rather than losing the run's work.
+          # index.html is shared with those jobs, but they write different
+          # lines of it (MODEL_ACTUALS, and this one DB), so a rebase merges
+          # cleanly rather than conflicting.
+          for attempt in 1 2 3 4 5; do
+            if git push; then
+              exit 0
+            fi
+            echo "Push rejected (attempt $attempt/5), rebasing onto latest main and retrying..."
+            git fetch origin main
+            git rebase origin/main
+          done
+          echo "::error::Failed to push after 5 attempts"
+          exit 1
