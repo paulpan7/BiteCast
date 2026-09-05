@@ -22,13 +22,13 @@ import os
 import sys
 import urllib.error
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from extend_history import (  # noqa: E402
-    BASE, EXCLUDED_LANDINGS, page_report_date, parse_fish_page, request_bytes,
+    BASE, EXCLUDED_LANDINGS, INDEX, extract_db, page_report_date, parse_fish_page, request_bytes,
 )
 
 ANTHROPIC_MODEL = "claude-haiku-4-5-20251001"
@@ -41,7 +41,13 @@ SEASONAL_NOTE = (
     "-- if yellowtail shows up anywhere in today's species list, call it out "
     "by name (with its count and, if notable, which boat), even if it isn't "
     "the single highest-count species. Don't force it in if it's genuinely "
-    "absent from the list."
+    "absent from the list. When you do call out a count for any species, "
+    "weigh it against the recent baseline given below rather than its raw "
+    "size alone or a gut sense of what 'sounds like a lot' -- a species that "
+    "normally trickles in at a couple a day can have a genuinely strong day "
+    "at a count that would look unremarkable for a species landed in bulk "
+    "daily. Never call a count 'light' or 'quiet' when it's actually at or "
+    "above its own recent baseline, or vice versa."
 )
 
 AI_SUMMARY_SYSTEM_PROMPT = (
@@ -132,7 +138,34 @@ def summarize(trips):
     return totals, species_list, boat_list, hot, matrix
 
 
-def build_summary_prompt(date, weekday, totals, species_list, boat_list, hot):
+def historical_species_baseline(species_names, effective_date, days=30):
+    """Average per-day encounters (kept+released) for each name in
+    `species_names`, over the `days` immediately before `effective_date` --
+    using the historical archive already embedded in index.html, so this
+    needs no extra network fetch. Gives the AI summary a real number to
+    judge a single day's count against: without it, a model has no way to
+    know that e.g. 30 yellowtail in a day is a lot or a little, and (as
+    observed 2026-09-05) can confidently guess wrong in either direction.
+    Returns {} on any failure -- this is supporting context, never required.
+    """
+    try:
+        db, _, _ = extract_db(INDEX.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    end = datetime.strptime(effective_date, "%Y-%m-%d").date()
+    start = (end - timedelta(days=days)).isoformat()
+    wanted = set(species_names)
+    totals = {name: 0 for name in wanted}
+    for trip in db.get("trips", []):
+        if not (start <= trip["date"] < effective_date):
+            continue
+        for item in trip.get("species", []):
+            if item["species"] in wanted:
+                totals[item["species"]] += item.get("kept", 0) + item.get("released", 0)
+    return {name: round(total / days, 1) for name, total in totals.items()}
+
+
+def build_summary_prompt(date, weekday, totals, species_list, boat_list, hot, baseline):
     lines = [
         # Giving the weekday explicitly, rather than leaving the model to work
         # it out from the ISO date, avoids exactly the failure mode observed
@@ -149,6 +182,11 @@ def build_summary_prompt(date, weekday, totals, species_list, boat_list, hot):
         ))
     if hot:
         lines.append(f"Best single result: {hot['count']} {hot['species']} aboard {hot['boat']}.")
+    if baseline:
+        lines.append("Recent baseline -- FLEET-WIDE total per day, trailing 30 days, today excluded "
+                      "(compare only against today's fleet-wide 'By species' total above, never against "
+                      "any single boat's count): " +
+                      ", ".join(f"{name} {avg}" for name, avg in baseline.items()))
     return "\n".join(lines)
 
 
@@ -160,11 +198,17 @@ def generate_ai_summary(date, weekday, totals, species_list, boat_list, hot):
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
         return None
+    # Baseline covers whatever's actually worth judging in context: today's
+    # top species plus yellowtail specifically (SEASONAL_NOTE below), even
+    # when yellowtail isn't one of the top species by raw count.
+    baseline_species = {s["species"] for s in species_list[:8]}
+    baseline_species.update(s["species"] for s in species_list if s["species"] == "Yellowtail")
+    baseline = historical_species_baseline(baseline_species, date) if baseline_species else {}
     body = json.dumps({
         "model": ANTHROPIC_MODEL,
         "max_tokens": 220,
         "system": AI_SUMMARY_SYSTEM_PROMPT,
-        "messages": [{"role": "user", "content": build_summary_prompt(date, weekday, totals, species_list, boat_list, hot)}],
+        "messages": [{"role": "user", "content": build_summary_prompt(date, weekday, totals, species_list, boat_list, hot, baseline)}],
     }).encode("utf-8")
     request = urllib.request.Request(
         "https://api.anthropic.com/v1/messages", data=body, method="POST",
