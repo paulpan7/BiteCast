@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""BiteCast Flask application: the SPA shell plus JSON endpoints backed by MySQL.
+"""FleetCast Flask application: the SPA shell plus JSON endpoints backed by MySQL.
 
 Replaces the static-mirror launcher. The page shell (0.21 MB) is still served
 from disk; what changes is that the 10.65 MB `const DB=` literal no longer has
@@ -11,7 +11,7 @@ Endpoints fall into two groups:
   live query   -- /api/trips, paged, the only one that touches raw trip rows
 
 Run locally:
-    BITECAST_DB_NAME=bitecast_test .venv/bin/flask --app scripts/app run --port 5001
+    FLEETCAST_DB_NAME=fleetcast_test .venv/bin/flask --app scripts/app run --port 5001
 """
 
 from __future__ import annotations
@@ -479,7 +479,7 @@ def ingest_boat_tracks():
     on Actions and POSTs its result here rather than committing it to git.
     Idempotent: replaying a payload updates in place and reports 0 inserted.
     """
-    expected = os.environ.get("BITECAST_INGEST_TOKEN")
+    expected = os.environ.get("FLEETCAST_INGEST_TOKEN")
     if not expected:
         return jsonify({"error": "ingest not configured"}), 503
     supplied = request.headers.get("Authorization", "")

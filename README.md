@@ -1,6 +1,6 @@
-# BiteCast
+# FleetCast
 
-BiteCast is a standalone browser for San Diego-area half-day sportfishing results and weather-first AM/PM forecasts.
+FleetCast is a standalone browser for San Diego-area half-day sportfishing results and weather-first AM/PM forecasts.
 
 The historical site includes usable SanDiegoFishReports `1/2 Day AM` and `1/2 Day PM` rows from January 1, 2017 through August 30, 2026. It covers 46 named boats at 4 San Diego-area landings. Kept and released fish remain separate in the embedded data, while the main encounter metric includes both. 1 malformed 2018 source row with a blank boat identity is excluded. Oceanside Sea Center and its associated boats are also excluded because their reported encounter rates were judged unreliable for comparison and model training.
 
@@ -30,8 +30,8 @@ This moves the dataset out of `index.html` and into a database. Nothing below ch
 canonical site until the last step, so it is safe to work through and stop partway.
 
 **1. Create the database.** Dashboard → **Databases** tab. Set a MySQL password if this is the
-first time (it is separate from the login password), then create a database named `bitecast`.
-PythonAnywhere prefixes it, so the real name becomes `<user>$bitecast`, and the host is
+first time (it is separate from the login password), then create a database named `fleetcast`.
+PythonAnywhere prefixes it, so the real name becomes `<user>$fleetcast`, and the host is
 `<user>.mysql.pythonanywhere-services.com`. Both appear on that page -- use what it shows rather
 than the placeholders here.
 
@@ -43,15 +43,15 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements-server.txt
 
 **3. Point the scripts at the database.** These are read from the environment, never the repo:
 ```bash
-export BITECAST_DB_HOST='<user>.mysql.pythonanywhere-services.com'
-export BITECAST_DB_USER='<user>'
-export BITECAST_DB_PASSWORD='<the MySQL password from step 1>'
-export BITECAST_DB_NAME='<user>$bitecast'
+export FLEETCAST_DB_HOST='<user>.mysql.pythonanywhere-services.com'
+export FLEETCAST_DB_USER='<user>'
+export FLEETCAST_DB_PASSWORD='<the MySQL password from step 1>'
+export FLEETCAST_DB_NAME='<user>$fleetcast'
 ```
 
 **4. Load the schema and migrate the data:**
 ```bash
-mysql -u "$BITECAST_DB_USER" -h "$BITECAST_DB_HOST" -p "$BITECAST_DB_NAME" < scripts/schema.sql
+mysql -u "$FLEETCAST_DB_USER" -h "$FLEETCAST_DB_HOST" -p "$FLEETCAST_DB_NAME" < scripts/schema.sql
 .venv/bin/python scripts/migrate_db_blob.py
 .venv/bin/python scripts/model_fit.py --status live
 ```
@@ -69,10 +69,10 @@ set them in the WSGI file itself, above the import:
 ```python
 import os, sys
 os.environ.update({
-    "BITECAST_DB_HOST": "<user>.mysql.pythonanywhere-services.com",
-    "BITECAST_DB_USER": "<user>",
-    "BITECAST_DB_PASSWORD": "<the MySQL password>",
-    "BITECAST_DB_NAME": "<user>$bitecast",
+    "FLEETCAST_DB_HOST": "<user>.mysql.pythonanywhere-services.com",
+    "FLEETCAST_DB_USER": "<user>",
+    "FLEETCAST_DB_PASSWORD": "<the MySQL password>",
+    "FLEETCAST_DB_NAME": "<user>$fleetcast",
 })
 sys.path.insert(0, "/home/<user>/BiteCast/scripts")
 from pythonanywhere_wsgi import application
@@ -150,7 +150,7 @@ Forecasts include 2 asymmetric ranges derived from signed `actual − forecast` 
 
 ## Model freeze and prospective validation
 
-The BiteCast model and embedded training data are frozen at reports through August 30, 2026. They must remain unchanged until the user explicitly requests model updates to resume. `data/validation/MODEL_FROZEN.json` is the repository guard; `scripts/extend_history.py` refuses any operation that would modify the historical database or retrain while that marker exists.
+The FleetCast model and embedded training data are frozen at reports through August 30, 2026. They must remain unchanged until the user explicitly requests model updates to resume. `data/validation/MODEL_FROZEN.json` is the repository guard; `scripts/extend_history.py` refuses any operation that would modify the historical database or retrain while that marker exists.
 
 Actual fish counts refresh at 3:00 PM and 9:00 PM Pacific for prospective validation. `.github/workflows/sync-validation-actuals.yml` re-reads the latest 14 report days, retains all new trip rows beginning August 31 in `data/validation/post_freeze_fish_counts.json`, writes `data/validation/latest_actuals.json`, and updates only the small embedded `MODEL_ACTUALS` payload used by the Data & Methods “Model vs. actual” chart. The chart offers Last 7 days and Last 14 days views beginning with the September 1 frozen forecasts. This job never changes the model, training rows, boat profiles, or frozen forecast snapshot.
 
@@ -203,4 +203,4 @@ BiteCast/
 
 ## Attribution
 
-Fish counts belong to their respective source publishers. The fish marks used in BiteCast are original inline SVG illustrations and do not reuse FishDatabase artwork.
+Fish counts belong to their respective source publishers. The fish marks used in FleetCast are original inline SVG illustrations and do not reuse FishDatabase artwork.

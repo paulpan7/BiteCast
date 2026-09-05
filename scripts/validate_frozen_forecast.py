@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare a frozen BiteCast forecast with later reports without retraining the model."""
+"""Compare a frozen FleetCast forecast with later reports without retraining the model."""
 
 from __future__ import annotations
 

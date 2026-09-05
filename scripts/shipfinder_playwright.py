@@ -57,7 +57,7 @@ CSV_NAIVE_TZ = ZoneInfo(os.getenv("FLEETCAST_CSV_NAIVE_TZ", "UTC"))  # see TIMEZ
 BUNDLE_PATH = ROOT / "bundle.json"
 WINDOW_HOURS = 24
 RETENTION_DAYS = int(os.getenv("FLEETCAST_RETENTION_DAYS", "30"))
-GIT_REPO_ROOT = os.getenv("FLEETCAST_GIT_REPO")  # path to the BiteCast git checkout on this machine; unset = don't push
+GIT_REPO_ROOT = os.getenv("FLEETCAST_GIT_REPO")  # path to the FleetCast git checkout on this machine; unset = don't push
 
 def read_fleet():
     raw = MMSI_FILE.read_text().splitlines()
@@ -383,7 +383,7 @@ def main():
 
     # bundle.json is already sitting on this machine's disk at this point --
     # a PythonAnywhere web app can be pointed at FLEETCAST_DATA_DIR to serve
-    # it directly with no further steps. Pushing it into the BiteCast repo
+    # it directly with no further steps. Pushing it into the FleetCast repo
     # too (opt-in via FLEETCAST_GIT_REPO) is what makes GitHub Pages serve
     # the same file, matching how the validation-sync GitHub Action already
     # commits its own data back to this repo.

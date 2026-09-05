@@ -1,4 +1,4 @@
-"""BiteCast WSGI entry point for the PythonAnywhere web app.
+"""FleetCast WSGI entry point for the PythonAnywhere web app.
 
 Point that account's WSGI config (/var/www/<domain>_wsgi.py) at this module --
 see README.md's PythonAnywhere section.
@@ -8,7 +8,7 @@ canonical. It now exposes the Flask application in scripts/app.py, which serves
 the same page shell off disk but backs its data with MySQL instead of a 10.65 MB
 JSON literal inlined into index.html.
 
-Database credentials come from the environment (BITECAST_DB_*), never the repo;
+Database credentials come from the environment (FLEETCAST_DB_*), never the repo;
 see scripts/db.py. The web app needs those set in the PythonAnywhere dashboard.
 """
 
