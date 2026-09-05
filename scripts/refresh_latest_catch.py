@@ -37,9 +37,10 @@ AI_SUMMARY_SYSTEM_PROMPT = (
     "site, in the brisk, specific, slightly informal tone real landing dock-"
     "totals writeups use: lead with what stood out, name real boats and "
     "species with their actual counts, no hype or exclamation-point overload, "
-    "no generic filler ('a great day was had by all'). 2-4 sentences. Output "
-    "only the report itself -- no preamble like 'Here is a summary', no "
-    "markdown, no quotation marks around it."
+    "no generic filler ('a great day was had by all'). Use only the date/"
+    "weekday and numbers given -- never compute or guess a weekday yourself. "
+    "2-4 sentences. Output only the report itself -- no preamble like 'Here "
+    "is a summary', no markdown, no quotation marks around it."
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -119,9 +120,12 @@ def summarize(trips):
     return totals, species_list, boat_list, hot, matrix
 
 
-def build_summary_prompt(date, totals, species_list, boat_list, hot):
+def build_summary_prompt(date, weekday, totals, species_list, boat_list, hot):
     lines = [
-        f"Date: {date}",
+        # Giving the weekday explicitly, rather than leaving the model to work
+        # it out from the ISO date, avoids exactly the failure mode observed
+        # 2026-09-05: a fluent but wrong "Thursday" for an actual Friday.
+        f"Date: {date} ({weekday})",
         f"Trips: {totals['trips']}  Anglers: {totals['anglers']}  "
         f"Fish: {totals['encounters']} (kept {totals['kept']}, released {totals['released']})",
     ]
@@ -136,7 +140,7 @@ def build_summary_prompt(date, totals, species_list, boat_list, hot):
     return "\n".join(lines)
 
 
-def generate_ai_summary(date, totals, species_list, boat_list, hot):
+def generate_ai_summary(date, weekday, totals, species_list, boat_list, hot):
     """Real AI-written bite report via the Claude API. Returns None (never
     raises) if ANTHROPIC_API_KEY isn't set or the call fails for any reason
     -- the stats/infographics half of this page must ship regardless of
@@ -148,7 +152,7 @@ def generate_ai_summary(date, totals, species_list, boat_list, hot):
         "model": ANTHROPIC_MODEL,
         "max_tokens": 220,
         "system": AI_SUMMARY_SYSTEM_PROMPT,
-        "messages": [{"role": "user", "content": build_summary_prompt(date, totals, species_list, boat_list, hot)}],
+        "messages": [{"role": "user", "content": build_summary_prompt(date, weekday, totals, species_list, boat_list, hot)}],
     }).encode("utf-8")
     request = urllib.request.Request(
         "https://api.anthropic.com/v1/messages", data=body, method="POST",
@@ -174,7 +178,7 @@ def main():
     trips = [t for t in trips if t["landing"] not in EXCLUDED_LANDINGS]
     totals, species_list, boat_list, hot, matrix = summarize(trips)
     ai_summary = None if (stale or not totals["trips"]) else generate_ai_summary(
-        today.isoformat(), totals, species_list, boat_list, hot,
+        today.isoformat(), today.strftime("%A"), totals, species_list, boat_list, hot,
     )
 
     payload = {
