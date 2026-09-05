@@ -1,7 +1,7 @@
 {
   "modelTrainingDataThrough": "2026-08-30",
   "actualDataStart": "2026-08-31",
-  "actualDataThrough": "2026-09-04",
+  "actualDataThrough": "2026-09-05",
   "modelWasRetrained": false,
   "trips": [
     {
@@ -765,6 +765,145 @@
     },
     {
       "date": "2026-09-04",
+      "period": "PM",
+      "anglers": 27,
+      "source_url": "https://www.sandiegofishreports.com/dock_totals/boats.php?date=2026-09-04",
+      "boat": "Daily Double",
+      "boat_path": "/charter_boats/dailydouble.php",
+      "landing": "Point Loma Sportfishing",
+      "landing_path": "/landings/point_loma_sportfishing.php",
+      "city": "San Diego, CA",
+      "species": [
+        {
+          "species": "Sand Bass",
+          "kept": 23,
+          "released": 0
+        },
+        {
+          "species": "Halibut",
+          "kept": 1,
+          "released": 0
+        },
+        {
+          "species": "Sculpin",
+          "kept": 7,
+          "released": 0
+        },
+        {
+          "species": "Yellowtail",
+          "kept": 1,
+          "released": 0
+        },
+        {
+          "species": "Bonito",
+          "kept": 12,
+          "released": 0
+        },
+        {
+          "species": "White Seabass",
+          "kept": 1,
+          "released": 0
+        }
+      ],
+      "kept": 45,
+      "released": 0,
+      "encounters": 45,
+      "epa": 1.667,
+      "tripNo": 1
+    },
+    {
+      "date": "2026-09-04",
+      "period": "AM",
+      "anglers": 33,
+      "source_url": "https://www.sandiegofishreports.com/dock_totals/boats.php?date=2026-09-04",
+      "boat": "Dolphin",
+      "boat_path": "/charter_boats/dolphin.php",
+      "landing": "Fisherman's Landing",
+      "landing_path": "/landings/fishermans_landing.php",
+      "city": "San Diego, CA",
+      "species": [
+        {
+          "species": "Sand Bass",
+          "kept": 32,
+          "released": 0
+        },
+        {
+          "species": "Yellowtail",
+          "kept": 15,
+          "released": 0
+        },
+        {
+          "species": "Bonito",
+          "kept": 51,
+          "released": 0
+        },
+        {
+          "species": "Rockfish",
+          "kept": 9,
+          "released": 0
+        }
+      ],
+      "kept": 107,
+      "released": 0,
+      "encounters": 107,
+      "epa": 3.242,
+      "tripNo": 1
+    },
+    {
+      "date": "2026-09-04",
+      "period": "PM",
+      "anglers": 29,
+      "source_url": "https://www.sandiegofishreports.com/dock_totals/boats.php?date=2026-09-04",
+      "boat": "Dolphin",
+      "boat_path": "/charter_boats/dolphin.php",
+      "landing": "Fisherman's Landing",
+      "landing_path": "/landings/fishermans_landing.php",
+      "city": "San Diego, CA",
+      "species": [
+        {
+          "species": "Sand Bass",
+          "kept": 41,
+          "released": 0
+        },
+        {
+          "species": "Barracuda",
+          "kept": 2,
+          "released": 0
+        },
+        {
+          "species": "Sculpin",
+          "kept": 10,
+          "released": 0
+        },
+        {
+          "species": "Sheephead",
+          "kept": 1,
+          "released": 0
+        },
+        {
+          "species": "Yellowtail",
+          "kept": 3,
+          "released": 0
+        },
+        {
+          "species": "Bonito",
+          "kept": 11,
+          "released": 0
+        },
+        {
+          "species": "Rockfish",
+          "kept": 23,
+          "released": 0
+        }
+      ],
+      "kept": 91,
+      "released": 0,
+      "encounters": 91,
+      "epa": 3.138,
+      "tripNo": 1
+    },
+    {
+      "date": "2026-09-04",
       "period": "AM",
       "anglers": 56,
       "source_url": "https://www.sandiegofishreports.com/dock_totals/boats.php?date=2026-09-04",
@@ -804,6 +943,54 @@
       "released": 0,
       "encounters": 174,
       "epa": 3.107,
+      "tripNo": 1
+    },
+    {
+      "date": "2026-09-04",
+      "period": "PM",
+      "anglers": 51,
+      "source_url": "https://www.sandiegofishreports.com/dock_totals/boats.php?date=2026-09-04",
+      "boat": "New Seaforth",
+      "boat_path": "/charter_boats/newseaforth.php",
+      "landing": "Seaforth Sportfishing",
+      "landing_path": "/landings/seaforth_sportfishing.php",
+      "city": "San Diego, CA",
+      "species": [
+        {
+          "species": "Sand Bass",
+          "kept": 5,
+          "released": 0
+        },
+        {
+          "species": "Barracuda",
+          "kept": 26,
+          "released": 0
+        },
+        {
+          "species": "Sheephead",
+          "kept": 3,
+          "released": 0
+        },
+        {
+          "species": "Yellowtail",
+          "kept": 3,
+          "released": 0
+        },
+        {
+          "species": "Calico Bass",
+          "kept": 30,
+          "released": 0
+        },
+        {
+          "species": "Bonito",
+          "kept": 140,
+          "released": 0
+        }
+      ],
+      "kept": 207,
+      "released": 0,
+      "encounters": 207,
+      "epa": 4.059,
       "tripNo": 1
     },
     {
@@ -857,6 +1044,49 @@
       "released": 0,
       "encounters": 228,
       "epa": 5.846,
+      "tripNo": 1
+    },
+    {
+      "date": "2026-09-04",
+      "period": "PM",
+      "anglers": 14,
+      "source_url": "https://www.sandiegofishreports.com/dock_totals/boats.php?date=2026-09-04",
+      "boat": "Premier",
+      "boat_path": "/charter_boats/premier.php",
+      "landing": "H&M Landing",
+      "landing_path": "/landings/h&m_landing.php",
+      "city": "San Diego, CA",
+      "species": [
+        {
+          "species": "Sand Bass",
+          "kept": 2,
+          "released": 0
+        },
+        {
+          "species": "Yellowtail",
+          "kept": 3,
+          "released": 0
+        },
+        {
+          "species": "Calico Bass",
+          "kept": 1,
+          "released": 0
+        },
+        {
+          "species": "Bonito",
+          "kept": 5,
+          "released": 0
+        },
+        {
+          "species": "Rockfish",
+          "kept": 3,
+          "released": 0
+        }
+      ],
+      "kept": 14,
+      "released": 0,
+      "encounters": 14,
+      "epa": 1.0,
       "tripNo": 1
     }
   ]
