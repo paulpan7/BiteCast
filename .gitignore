@@ -9,3 +9,7 @@ scripts/__pycache__/
 # git even if SHIPFINDER_AUTH_STATE is ever pointed here by mistake.
 *.auth_state.json
 data/fleetcast/auth_state.json
+
+# Local static fixtures standing in for the Flask API during verification
+/api/
+/baseline.html

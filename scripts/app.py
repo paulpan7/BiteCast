@@ -271,6 +271,25 @@ def full_db():
     }, seconds=900)
 
 
+@app.route("/api/db.js")
+def full_db_script():
+    """The same payload as /api/db, as a classic script that assigns a global.
+
+    index.html loads this with a plain <script src>, which blocks parsing until
+    it has run, so the inline script that follows still sees its data as an
+    ordinary synchronous value. That matters: the page's two inline scripts
+    share one top-level script scope, and the second borrows helpers (fmt, esc)
+    declared in the first. Switching the first to a module to allow a top-level
+    `await fetch` would move those declarations out of reach and break the
+    FleetTrack panel, with the failure swallowed by its own .catch.
+    """
+    payload = full_db().get_json()
+    body = "window.__BITECAST_DB__=" + json.dumps(payload, separators=(",", ":")) + ";\n"
+    response = app.response_class(body, mimetype="application/javascript")
+    response.headers["Cache-Control"] = "public, max-age=900"
+    return response
+
+
 @app.route("/api/models")
 def models():
     """Fitted coefficients and residual quantiles -- this is what replaces the
