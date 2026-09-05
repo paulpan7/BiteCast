@@ -35,6 +35,24 @@ fi
 # shellcheck disable=SC1090
 . "$ENV_FILE"
 
+# Check the credentials survived sourcing. `set -e` does not fire when a command
+# substitution fails inside an assignment, so an env file doing
+# PASSWORD="$(cat missing-file)" leaves the variable empty and carries on. Left
+# unchecked that surfaces much later as a pymysql traceback and MySQL error 1045
+# "using password: NO", which reads like a wrong password rather than an absent
+# one.
+missing=""
+for name in FLEETCAST_DB_HOST FLEETCAST_DB_USER FLEETCAST_DB_NAME FLEETCAST_DB_PASSWORD; do
+  if [ -z "${!name:-}" ]; then
+    missing="$missing $name"
+  fi
+done
+if [ -n "$missing" ]; then
+  log "ERROR: empty or unset after sourcing $ENV_FILE:$missing"
+  log "       if the password comes from a file, check that file exists and is readable"
+  exit 1
+fi
+
 if [ ! -x "$PYTHON" ]; then
   log "ERROR: no virtualenv at $PYTHON -- create it with requirements-server.txt"
   exit 1

@@ -196,7 +196,16 @@ push; GitHub Pages picks that up automatically, but PythonAnywhere's database ke
 snapshot it was loaded with and drifts further every day. That gap is what `scripts/pa_refresh.sh`
 closes: it pulls, reloads MySQL from the refreshed `index.html`, and refits the model.
 
-Set it up once. Credentials in a file outside the repo:
+Set it up once. First the password, in its own file so no other config has to quote or escape it:
+```bash
+read -rsp 'MySQL password: ' P && printf '%s' "$P" > ~/.fleetcast_db_password \
+  && chmod 600 ~/.fleetcast_db_password && unset P \
+  && echo && echo "saved, $(wc -c < ~/.fleetcast_db_password) bytes"
+```
+Check the byte count matches the password's length. The WSGI file can read the same file, so the
+secret lives in exactly one place.
+
+Then the rest of the connection details, which are not secret:
 ```bash
 cat > ~/.fleetcast_env <<'EOF'
 export FLEETCAST_DB_HOST='<user>.mysql.pythonanywhere-services.com'
