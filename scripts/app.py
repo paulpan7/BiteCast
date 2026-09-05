@@ -284,7 +284,7 @@ def full_db_script():
     FleetTrack panel, with the failure swallowed by its own .catch.
     """
     payload = full_db().get_json()
-    body = "window.__BITECAST_DB__=" + json.dumps(payload, separators=(",", ":")) + ";\n"
+    body = "window.__FLEETCAST_DB__=" + json.dumps(payload, separators=(",", ":")) + ";\n"
     response = app.response_class(body, mimetype="application/javascript")
     response.headers["Cache-Control"] = "public, max-age=900"
     return response

@@ -43,20 +43,20 @@ INDEX = ROOT / "index.html"
 MARKER = "const DB="
 SCRIPT_OPEN = "<script>"
 
-# Loaded before the inline script; defines window.__BITECAST_DB__.
+# Loaded before the inline script; defines window.__FLEETCAST_DB__.
 DATA_SCRIPT = '<script src="api/db.js"></script>\n'
 
-REPLACEMENT = """const DB = window.__BITECAST_DB__ || (() => {
+REPLACEMENT = """const DB = window.__FLEETCAST_DB__ || (() => {
   const main = document.querySelector('main');
-  if (main && !document.getElementById('bitecastDataError')) {
+  if (main && !document.getElementById('fleetcastDataError')) {
     const notice = document.createElement('p');
-    notice.id = 'bitecastDataError';
+    notice.id = 'fleetcastDataError';
     notice.className = 'notice';
     notice.textContent = 'Live data is unavailable right now, so this page cannot render. '
       + 'The data service did not respond.';
     main.insertBefore(notice, main.firstChild);
   }
-  throw new Error('BiteCast data service unavailable');
+  throw new Error('FleetCast data service unavailable');
 })();"""
 
 
