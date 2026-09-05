@@ -32,6 +32,18 @@ from extend_history import (  # noqa: E402
 )
 
 ANTHROPIC_MODEL = "claude-haiku-4-5-20251001"
+# Manually-maintained editorial hint, not derived from the data -- update or
+# remove this as the season actually changes. Set 2026-09-05: yellowtail is
+# in season and a big draw for San Diego anglers right now, so it's worth
+# naming even when it isn't the day's top species by raw count.
+SEASONAL_NOTE = (
+    "Yellowtail are in season right now and a big draw for San Diego anglers "
+    "-- if yellowtail shows up anywhere in today's species list, call it out "
+    "by name (with its count and, if notable, which boat), even if it isn't "
+    "the single highest-count species. Don't force it in if it's genuinely "
+    "absent from the list."
+)
+
 AI_SUMMARY_SYSTEM_PROMPT = (
     "You write short daily bite-report summaries for a San Diego sportfishing "
     "site, in the brisk, specific, slightly informal tone real landing dock-"
@@ -40,7 +52,7 @@ AI_SUMMARY_SYSTEM_PROMPT = (
     "no generic filler ('a great day was had by all'). Use only the date/"
     "weekday and numbers given -- never compute or guess a weekday yourself. "
     "2-4 sentences. Output only the report itself -- no preamble like 'Here "
-    "is a summary', no markdown, no quotation marks around it."
+    "is a summary', no markdown, no quotation marks around it.\n\n" + SEASONAL_NOTE
 )
 
 ROOT = Path(__file__).resolve().parents[1]
