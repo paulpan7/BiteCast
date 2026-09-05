@@ -1,0 +1,56 @@
+name: Refresh latest catch
+
+on:
+  schedule:
+    # ~8:00 PM and ~11:00 PM Pacific (PDT). Landings post AM totals earlier
+    # in the day and PM totals after dark, so a single run would routinely
+    # catch the day only half-reported -- these two bracket that.
+    - cron: "00 03 * * *"
+    - cron: "00 06 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-latest-catch
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # No pip install: refresh_latest_catch.py (and the extend_history.py
+      # helpers it imports) are stdlib-only, and the source is public, so
+      # this job needs no secrets either.
+      - name: Fetch and summarize today's reported catch
+        run: python3 scripts/refresh_latest_catch.py
+      - name: Publish refreshed summary
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/fleetcast/latest_catch.json
+          if git diff --cached --quiet; then
+            echo "No changes to publish"
+            exit 0
+          fi
+          git commit -m "Refresh latest catch"
+          # main can move between this job's checkout and this push (the
+          # boat-tracks, marine-forecast, or validation-actuals job landing
+          # mid-run) -- rebase onto the latest and retry rather than losing
+          # the run's work. This job only ever touches its own file, so a
+          # rebase can't conflict with any of theirs.
+          for attempt in 1 2 3 4 5; do
+            if git push; then
+              exit 0
+            fi
+            echo "Push rejected (attempt $attempt/5), rebasing onto latest main and retrying..."
+            git fetch origin main
+            git rebase origin/main
+          done
+          echo "::error::Failed to push after 5 attempts"
+          exit 1
