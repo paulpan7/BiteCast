@@ -14,15 +14,34 @@ Open `index.html` directly in a modern browser. The complete dataset, charts, fi
 
 The interface adapts to phone and tablet screens: filters stack into 1 column, calendar months stack vertically, navigation remains swipeable, and wide charts scroll inside their cards without widening the page.
 
-### Mirroring on PythonAnywhere
+### PythonAnywhere
 
-GitHub Pages is canonical; a PythonAnywhere web app can mirror the same static checkout. `scripts/pythonanywhere_wsgi.py` serves every file straight off disk (`send_from_directory`, no build step, no templating) -- point that account's WSGI config (`/var/www/<domain>_wsgi.py`) at it:
-```python
-import sys
-sys.path.insert(0, "/home/<user>/BiteCast/scripts")
-from pythonanywhere_wsgi import application
-```
-It reuses whatever virtualenv is already configured for that web app in the PythonAnywhere dashboard (just needs Flask). Keep the mirror current with a Scheduled Task running `git -C /home/<user>/BiteCast pull --ff-only origin main` on some cadence -- no credential needed while the repo stays public. A WSGI config change needs a manual "Reload" from the PythonAnywhere dashboard's Web tab to take effect; nothing triggers that automatically from here.
+GitHub Pages remains canonical and still serves the self-contained `index.html`, data and all.
+PythonAnywhere serves the same page shell off disk but additionally exposes a JSON API backed by
+MySQL, through the Flask app in `scripts/app.py`. `scripts/pythonanywhere_wsgi.py` is the entry
+point -- point that account's WSGI config (`/var/www/<domain>_wsgi.py`) at it. The full setup is
+in "Standing up MySQL on PythonAnywhere" below.
+
+That WSGI file needs three things beyond the import: a virtualenv built from
+`requirements-server.txt` (Flask alone is no longer enough, it needs `pymysql` too), the
+`FLEETCAST_DB_*` variables, and the database password. Keep the password in a file outside the
+repo rather than inline in the WSGI source -- a `\` or `"` in it is otherwise mangled by Python's
+string escaping and surfaces only as MySQL error 1045, "Access denied".
+
+Keep the checkout current with a Scheduled Task running
+`git -C /home/<user>/BiteCast pull --ff-only origin main` on some cadence -- no credential needed
+while the repo stays public. The directory is `BiteCast`, after the repository, even though the
+project is FleetCast throughout.
+
+A WSGI config change needs a manual "Reload" from the Web tab; nothing triggers it from here.
+Reloading *before* the virtualenv and environment variables are in place takes the site down,
+because the app can no longer import. Once reloaded, `/api/health` returns
+`{"ok": true, "trips": N}`, or a 503 naming the specific failure.
+
+Both hosts currently render identically: PythonAnywhere serves the API alongside the embedded
+page, so nothing changed for visitors. Only the `pythonanywhere-frontend` branch drops the
+embedded data, and it must not reach GitHub Pages -- Pages builds from `main`, so keeping that
+branch off `main` is what keeps it safe.
 
 ### Standing up MySQL on PythonAnywhere
 
