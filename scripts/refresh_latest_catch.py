@@ -185,18 +185,28 @@ def main():
     today = now.date()
     raw = fetch_today(today)
     actual_date = page_report_date(raw)
-    stale = actual_date is not None and actual_date != today.isoformat()
-    trips = [] if stale else parse_fish_page(today.isoformat(), raw)
+    # SanDiegoFishReports silently serves the most recently *posted* day when
+    # today's own results aren't up yet, rather than an empty page. Rather
+    # than discard that and show nothing until tonight's numbers land, treat
+    # whatever day it actually returned as the one being summarized -- its
+    # own correct date -- so the page keeps showing the last real day's
+    # catch instead of going blank in between. carried_over tells the
+    # frontend to say so plainly rather than imply this is today's own data.
+    effective_date = actual_date or today.isoformat()
+    carried_over = effective_date != today.isoformat()
+    trips = parse_fish_page(effective_date, raw)
     trips = [t for t in trips if t["landing"] not in EXCLUDED_LANDINGS]
     totals, species_list, boat_list, hot, matrix = summarize(trips)
-    ai_summary = None if (stale or not totals["trips"]) else generate_ai_summary(
-        today.isoformat(), today.strftime("%A"), totals, species_list, boat_list, hot,
+    weekday = datetime.strptime(effective_date, "%Y-%m-%d").strftime("%A")
+    ai_summary = None if not totals["trips"] else generate_ai_summary(
+        effective_date, weekday, totals, species_list, boat_list, hot,
     )
 
     payload = {
         "generated": now.astimezone(ZoneInfo("UTC")).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "date": today.isoformat(),
-        "stale": stale,  # true: nothing posted for today yet, source fell back to an older day
+        "date": effective_date,
+        "requestedDate": today.isoformat(),
+        "carriedOver": carried_over,  # true: today's own results aren't posted yet -- this is the last day that has real data
         "totals": totals,
         "bySpecies": species_list,
         "byBoat": boat_list,
@@ -206,8 +216,8 @@ def main():
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(payload, separators=(",", ":")), encoding="utf-8")
-    print(f"latest catch {today.isoformat()}: {totals['trips']} trips, {totals['encounters']} fish, "
-          f"stale={stale}, aiSummary={'yes' if ai_summary else 'no'}", flush=True)
+    print(f"latest catch {effective_date} (requested {today.isoformat()}): {totals['trips']} trips, "
+          f"{totals['encounters']} fish, carriedOver={carried_over}, aiSummary={'yes' if ai_summary else 'no'}", flush=True)
 
 
 if __name__ == "__main__":

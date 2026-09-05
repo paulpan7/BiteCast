@@ -530,19 +530,25 @@ const languageAndGapObserver=new MutationObserver(()=>{useFishPerAnglerLanguage(
     matrixTable.innerHTML=head+rows;
   }
   function render(data){
-    const totals=data.totals, bySpecies=data.bySpecies||[], byBoat=data.byBoat||[], hotBite=data.hotBite, date=data.date, stale=data.stale, generated=data.generated;
+    const totals=data.totals, bySpecies=data.bySpecies||[], byBoat=data.byBoat||[], hotBite=data.hotBite, date=data.date, carriedOver=data.carriedOver, generated=data.generated;
     dateBig.textContent=bigDate(date);
     if(generated){updatedTime.textContent=pdt(generated); updatedWrap.hidden=false;}
-    if(stale||!totals.trips){
+    if(!totals.trips){
+      // Genuinely nothing to show even after falling back to the last
+      // posted day -- rare (a brand-new deploy, or the source itself down),
+      // since carriedOver already keeps showing that last real day below.
       body.hidden=true; emptyBox.hidden=false; matrixCard.hidden=true; closePopover();
-      emptyBox.textContent=stale
-        ? `Nothing posted for today yet -- the source is still showing an earlier day. Landings usually have AM totals up by evening and PM totals after dark. Check back after 8 PM Pacific.`
-        : `No reports for today yet. Check back after 8 PM Pacific.`;
+      emptyBox.textContent=`No reports available yet. Check back after 8 PM Pacific.`;
       sub.textContent=`Nothing posted yet`;
       return;
     }
     emptyBox.hidden=true; body.hidden=false;
-    sub.textContent=`${fmt(totals.trips)} trips reported so far`;
+    // carriedOver: today's own results aren't posted yet, so this is the
+    // last day that actually has data (its date is already correct in the
+    // big title above) -- say so plainly rather than let it read as today's.
+    sub.textContent=carriedOver
+      ? `${fmt(totals.trips)} trips -- today's results aren't posted yet, showing the last available day`
+      : `${fmt(totals.trips)} trips reported so far`;
     statsBox.innerHTML=[
       [fmt(totals.encounters),'Fish counted'],
       [fmt(totals.anglers),'Anglers'],
