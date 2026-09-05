@@ -18,7 +18,10 @@ that guard already exists and is already trusted by the historical importer.
 from __future__ import annotations
 
 import json
+import os
 import sys
+import urllib.error
+import urllib.request
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -26,6 +29,17 @@ from zoneinfo import ZoneInfo
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from extend_history import (  # noqa: E402
     BASE, EXCLUDED_LANDINGS, page_report_date, parse_fish_page, request_bytes,
+)
+
+ANTHROPIC_MODEL = "claude-haiku-4-5-20251001"
+AI_SUMMARY_SYSTEM_PROMPT = (
+    "You write short daily bite-report summaries for a San Diego sportfishing "
+    "site, in the brisk, specific, slightly informal tone real landing dock-"
+    "totals writeups use: lead with what stood out, name real boats and "
+    "species with their actual counts, no hype or exclamation-point overload, "
+    "no generic filler ('a great day was had by all'). 2-4 sentences. Output "
+    "only the report itself -- no preamble like 'Here is a summary', no "
+    "markdown, no quotation marks around it."
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -55,9 +69,11 @@ def summarize(trips):
             row["released"] += item["released"]
         boat = boats.setdefault(trip["boat"], {
             "boat": trip["boat"], "landing": trip["landing"], "periods": set(),
+            "byPeriod": {"AM": 0, "PM": 0},
             "anglers": 0, "kept": 0, "released": 0, "encounters": 0, "species": {},
         })
         boat["periods"].add(trip["period"])
+        boat["byPeriod"][trip["period"]] = boat["byPeriod"].get(trip["period"], 0) + trip["encounters"]
         boat["anglers"] += trip["anglers"]
         boat["kept"] += trip["kept"]
         boat["released"] += trip["released"]
@@ -73,19 +89,79 @@ def summarize(trips):
     boat_list = []
     hot = None  # the single best boat+species pairing of the day, for one headline callout
     for boat in boats.values():
-        top_species = max(boat["species"].items(), key=lambda kv: kv[1])[0] if boat["species"] else None
+        top_five = sorted(boat["species"].items(), key=lambda kv: -kv[1])[:5]
         boat_list.append({
             "boat": boat["boat"], "landing": boat["landing"],
             "period": "Both" if len(boat["periods"]) > 1 else next(iter(boat["periods"]), "—"),
             "anglers": boat["anglers"], "kept": boat["kept"], "released": boat["released"],
-            "encounters": boat["encounters"], "topSpecies": top_species,
+            "encounters": boat["encounters"],
+            "topSpecies": top_five[0][0] if top_five else None,
+            "periods": boat["byPeriod"],  # {"AM": n, "PM": n} -- for a split bar
+            "topSpeciesList": [{"species": sp, "count": count} for sp, count in top_five],
+            "_species": boat["species"],  # full breakdown, used below for the matrix then dropped
         })
         for sp, count in boat["species"].items():
             if hot is None or count > hot["count"]:
                 hot = {"boat": boat["boat"], "species": sp, "count": count}
     boat_list.sort(key=lambda r: -r["encounters"])
 
-    return totals, species_list, boat_list, hot
+    # A small boat x species matrix for a heatmap: top boats by their own
+    # encounters, top species by fleet-wide encounters, cross-referenced --
+    # capped on both axes so the grid stays legible rather than exhaustive.
+    matrix_boats = [b["boat"] for b in boat_list[:8]]
+    matrix_species = [s["species"] for s in species_list[:8]]
+    matrix_cells = [[next((b for b in boat_list if b["boat"] == boat_name), {}).get("_species", {}).get(sp, 0)
+                      for sp in matrix_species] for boat_name in matrix_boats]
+    matrix = {"boats": matrix_boats, "species": matrix_species, "cells": matrix_cells}
+    for b in boat_list:
+        del b["_species"]
+
+    return totals, species_list, boat_list, hot, matrix
+
+
+def build_summary_prompt(date, totals, species_list, boat_list, hot):
+    lines = [
+        f"Date: {date}",
+        f"Trips: {totals['trips']}  Anglers: {totals['anglers']}  "
+        f"Fish: {totals['encounters']} (kept {totals['kept']}, released {totals['released']})",
+    ]
+    if species_list:
+        lines.append("By species: " + ", ".join(f"{s['species']} {s['encounters']}" for s in species_list[:8]))
+    if boat_list:
+        lines.append("By boat: " + ", ".join(
+            f"{b['boat']} ({b['landing']}) {b['encounters']} fish, mostly {b['topSpecies']}" for b in boat_list[:8]
+        ))
+    if hot:
+        lines.append(f"Best single result: {hot['count']} {hot['species']} aboard {hot['boat']}.")
+    return "\n".join(lines)
+
+
+def generate_ai_summary(date, totals, species_list, boat_list, hot):
+    """Real AI-written bite report via the Claude API. Returns None (never
+    raises) if ANTHROPIC_API_KEY isn't set or the call fails for any reason
+    -- the stats/infographics half of this page must ship regardless of
+    whether the summary comes through."""
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        return None
+    body = json.dumps({
+        "model": ANTHROPIC_MODEL,
+        "max_tokens": 220,
+        "system": AI_SUMMARY_SYSTEM_PROMPT,
+        "messages": [{"role": "user", "content": build_summary_prompt(date, totals, species_list, boat_list, hot)}],
+    }).encode("utf-8")
+    request = urllib.request.Request(
+        "https://api.anthropic.com/v1/messages", data=body, method="POST",
+        headers={"content-type": "application/json", "x-api-key": api_key, "anthropic-version": "2023-06-01"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            data = json.loads(response.read())
+        text = "".join(block.get("text", "") for block in data.get("content", [])).strip()
+        return text or None
+    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, ValueError) as exc:
+        print(f"WARNING: AI summary generation failed, publishing without it: {exc}", flush=True)
+        return None
 
 
 def main():
@@ -96,7 +172,10 @@ def main():
     stale = actual_date is not None and actual_date != today.isoformat()
     trips = [] if stale else parse_fish_page(today.isoformat(), raw)
     trips = [t for t in trips if t["landing"] not in EXCLUDED_LANDINGS]
-    totals, species_list, boat_list, hot = summarize(trips)
+    totals, species_list, boat_list, hot, matrix = summarize(trips)
+    ai_summary = None if (stale or not totals["trips"]) else generate_ai_summary(
+        today.isoformat(), totals, species_list, boat_list, hot,
+    )
 
     payload = {
         "generated": now.astimezone(ZoneInfo("UTC")).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -106,10 +185,13 @@ def main():
         "bySpecies": species_list,
         "byBoat": boat_list,
         "hotBite": hot,
+        "matrix": matrix,  # small boat x species grid for the heatmap
+        "aiSummary": ai_summary,  # null if ANTHROPIC_API_KEY isn't set, the call failed, or there's nothing to summarize
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(payload, separators=(",", ":")), encoding="utf-8")
-    print(f"latest catch {today.isoformat()}: {totals['trips']} trips, {totals['encounters']} fish, stale={stale}", flush=True)
+    print(f"latest catch {today.isoformat()}: {totals['trips']} trips, {totals['encounters']} fish, "
+          f"stale={stale}, aiSummary={'yes' if ai_summary else 'no'}", flush=True)
 
 
 if __name__ == "__main__":
