@@ -73,9 +73,14 @@ CREATE TABLE trip (
   CONSTRAINT fk_trip_landing FOREIGN KEY (landing_id) REFERENCES landing(landing_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- `position` preserves the order the source report listed species in. Nothing
+-- in the page depends on it (every consumer aggregates by name), but keeping it
+-- means the served payload reproduces the original literal exactly, which keeps
+-- migration diffs honest.
 CREATE TABLE trip_species (
   trip_id    INT UNSIGNED NOT NULL,
   species_id SMALLINT UNSIGNED NOT NULL,
+  position   TINYINT UNSIGNED NOT NULL DEFAULT 0,
   kept       SMALLINT UNSIGNED NOT NULL,
   released   SMALLINT UNSIGNED NOT NULL,
   PRIMARY KEY (trip_id, species_id),
@@ -246,6 +251,13 @@ CREATE TABLE boat_track (
   speed_kt  DECIMAL(5,2) NULL,
   PRIMARY KEY (mmsi, ts, lat, lon),
   KEY ix_track_day (track_day, mmsi)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Scalar site metadata that has nowhere better to live (the freshness
+-- timestamps the footer renders, for instance).
+CREATE TABLE site_meta (
+  meta_key   VARCHAR(64) NOT NULL PRIMARY KEY,
+  meta_value VARCHAR(255) NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Append-only audit trail. Partly recovers the provenance that git commits

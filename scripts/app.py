@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import datetime as dt
 import hmac
+import json
 import os
 import sys
 from pathlib import Path
@@ -102,6 +103,172 @@ def bootstrap():
         "tripCount": bounds["trips"],
         "tripsByYear": {str(row["y"]): row["n"] for row in years},
     })
+
+
+@app.route("/api/db")
+def full_db():
+    """The whole dataset in the shape the page's `const DB=` literal had.
+
+    This is what lets the 10.65 MB literal leave index.html without touching a
+    single consumer in the page: the shape is identical, only the delivery
+    changes. DB.stats and DB.weatherValidation are omitted -- both are read
+    exactly zero times by the page's JS.
+
+    It is deliberately the heaviest endpoint. The narrower ones (/api/bootstrap,
+    /api/models, /api/analysis) exist to retire it consumer by consumer.
+    """
+    connection = dbmod.connect(dict_rows=True)
+    try:
+        with connection.cursor() as cur:
+            cur.execute(
+                """
+                SELECT t.trip_id, t.trip_date, t.period, t.anglers, t.kept, t.released,
+                       t.encounters, t.epa, t.trip_no, t.source_url,
+                       b.name AS boat, b.boat_path, l.name AS landing,
+                       l.landing_path, l.city
+                FROM trip t
+                JOIN boat b ON b.boat_id = t.boat_id
+                JOIN landing l ON l.landing_id = t.landing_id
+                ORDER BY t.trip_date, b.name, t.period, t.trip_no
+                """
+            )
+            trip_rows = cur.fetchall()
+
+            cur.execute(
+                """
+                SELECT ts.trip_id, s.name, ts.kept, ts.released
+                FROM trip_species ts JOIN species s ON s.species_id = ts.species_id
+                ORDER BY ts.trip_id, ts.position
+                """
+            )
+            species_by_trip: dict[int, list] = {}
+            for row in cur.fetchall():
+                species_by_trip.setdefault(row["trip_id"], []).append(
+                    {"species": row["name"], "kept": row["kept"], "released": row["released"]}
+                )
+
+            cur.execute(
+                "SELECT name FROM species WHERE analysis_pos IS NOT NULL ORDER BY analysis_pos"
+            )
+            analysis_species = [row["name"] for row in cur.fetchall()]
+
+            cur.execute(
+                """
+                SELECT a.obs_date, a.period, a.air_temp_f, a.water_temp_f, a.pressure_hpa,
+                       a.swell_ft, a.tide_height_ft, a.tide_swing_ft, a.tide_delta_ft
+                FROM analysis_row a ORDER BY a.obs_date, a.period
+                """
+            )
+            weather_rows = cur.fetchall()
+
+            # fish[] is a projection over analysis_pos, not stored.
+            cur.execute(
+                """
+                SELECT r.obs_date, r.period, s.analysis_pos, r.encounters
+                FROM catch_rollup r JOIN species s ON s.species_id = r.species_id
+                WHERE s.analysis_pos IS NOT NULL
+                """
+            )
+            fish: dict[tuple, list] = {}
+            for row in cur.fetchall():
+                key = (row["obs_date"], row["period"])
+                fish.setdefault(key, [0] * len(analysis_species))[row["analysis_pos"]] = int(
+                    row["encounters"]
+                )
+
+            cur.execute(
+                """
+                SELECT b.name, p.trip_count, p.recent12, l.name AS landing
+                FROM boat_profile p JOIN boat b ON b.boat_id = p.boat_id
+                LEFT JOIN landing l ON l.landing_id = p.landing_id
+                """
+            )
+            profiles = {
+                row["name"]: {
+                    "tripCount": row["trip_count"],
+                    "landing": row["landing"],
+                    "periods": {},
+                    "recent12": float(row["recent12"]) if row["recent12"] is not None else 0,
+                }
+                for row in cur.fetchall()
+            }
+            cur.execute(
+                """
+                SELECT b.name, p.period, p.n, p.recent12, p.distribution
+                FROM boat_profile_period p JOIN boat b ON b.boat_id = p.boat_id
+                """
+            )
+            for row in cur.fetchall():
+                distribution = row["distribution"]
+                if isinstance(distribution, (str, bytes)):
+                    distribution = json.loads(distribution)
+                profiles[row["name"]]["periods"][row["period"]] = {
+                    "n": row["n"],
+                    "recent12": float(row["recent12"]) if row["recent12"] is not None else None,
+                    "distribution": distribution or [],
+                }
+
+            cur.execute("SELECT meta_key, meta_value FROM site_meta")
+            meta = {row["meta_key"]: row["meta_value"] for row in cur.fetchall()}
+    finally:
+        connection.close()
+
+    def number(value):
+        return float(value) if value is not None else None
+
+    trips = [
+        {
+            "date": row["trip_date"].isoformat(),
+            "period": row["period"],
+            "anglers": row["anglers"],
+            "source_url": row["source_url"],
+            "boat": row["boat"],
+            "boat_path": row["boat_path"],
+            "landing": row["landing"],
+            "landing_path": row["landing_path"],
+            "city": row["city"],
+            "species": species_by_trip.get(row["trip_id"], []),
+            "kept": row["kept"],
+            "released": row["released"],
+            "encounters": row["encounters"],
+            "epa": number(row["epa"]),
+            "tripNo": row["trip_no"],
+        }
+        for row in trip_rows
+    ]
+
+    analysis_rows = []
+    for row in weather_rows:
+        entry = {
+            "date": row["obs_date"].isoformat(),
+            "period": row["period"],
+            "fish": fish.get((row["obs_date"], row["period"]), [0] * len(analysis_species)),
+        }
+        for key, column in (
+            ("airTempF", "air_temp_f"), ("waterTempF", "water_temp_f"),
+            ("pressureHpa", "pressure_hpa"), ("swellFt", "swell_ft"),
+            ("tideHeightFt", "tide_height_ft"), ("tideSwingFt", "tide_swing_ft"),
+            ("tideDeltaFt", "tide_delta_ft"),
+        ):
+            if row[column] is not None:
+                entry[key] = float(row[column])
+        analysis_rows.append(entry)
+
+    forecast_payload = forecast().get_json()
+    forecast_days = []
+    for day in forecast_payload["days"]:
+        weekday = dt.date.fromisoformat(day["date"]).strftime("%a")
+        forecast_days.append({"date": day["date"], "dow": weekday, "periods": day["periods"]})
+
+    return jsonify_cached({
+        "trips": trips,
+        "analysisRows": analysis_rows,
+        "boatProfiles": profiles,
+        "forecast": forecast_days,
+        "analysisSpecies": analysis_species,
+        "forecastGenerated": meta.get("forecastGenerated"),
+        "retrieved": meta.get("retrieved"),
+    }, seconds=900)
 
 
 @app.route("/api/models")
@@ -377,4 +544,6 @@ def health():
 application = app
 
 if __name__ == "__main__":
-    app.run(port=int(os.environ.get("PORT", 5001)), debug=True)
+    # No reloader: it forks a child process, which confuses external process
+    # managers into thinking the server never bound.
+    app.run(host="127.0.0.1", port=int(os.environ.get("PORT", 5001)), use_reloader=False)

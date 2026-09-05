@@ -148,9 +148,12 @@ def load_trips(cur, trips, landing_ids, boat_ids, species_ids) -> None:
     species_rows = []
     for trip in trips:
         trip_id = trip_ids[fingerprint_hash(trip)]
-        for item in trip["species"]:
-            species_rows.append((trip_id, species_ids[item["species"]], item["kept"], item["released"]))
-    statement = "INSERT INTO trip_species (trip_id, species_id, kept, released) VALUES (%s,%s,%s,%s)"
+        for position, item in enumerate(trip["species"]):
+            species_rows.append(
+                (trip_id, species_ids[item["species"]], position, item["kept"], item["released"])
+            )
+    statement = ("INSERT INTO trip_species (trip_id, species_id, position, kept, released)"
+                 " VALUES (%s,%s,%s,%s,%s)")
     for start in range(0, len(species_rows), BATCH):
         cur.executemany(statement, species_rows[start:start + BATCH])
     return len(species_rows)
@@ -203,6 +206,13 @@ def load_forecast(cur, blob: dict) -> int:
             " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
             rows,
         )
+
+    # The footer's freshness strings; scalars with nowhere better to live.
+    cur.executemany(
+        "REPLACE INTO site_meta (meta_key, meta_value) VALUES (%s, %s)",
+        [("forecastGenerated", blob.get("forecastGenerated")),
+         ("retrieved", blob.get("retrieved"))],
+    )
     return len(rows)
 
 
