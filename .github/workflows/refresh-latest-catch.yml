@@ -25,9 +25,13 @@ jobs:
         with:
           python-version: "3.12"
       # No pip install: refresh_latest_catch.py (and the extend_history.py
-      # helpers it imports) are stdlib-only, and the source is public, so
-      # this job needs no secrets either.
+      # helpers it imports) are stdlib-only, and the dock-totals source is
+      # public and needs no secret. ANTHROPIC_API_KEY is optional -- unset,
+      # generate_ai_summary() just skips the AI bite report and everything
+      # else on the page still ships.
       - name: Fetch and summarize today's reported catch
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python3 scripts/refresh_latest_catch.py
       - name: Publish refreshed summary
         run: |
