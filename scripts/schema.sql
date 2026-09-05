@@ -1,4 +1,4 @@
--- BiteCast MySQL schema.
+-- FleetCast MySQL schema.
 --
 -- Source-of-truth tables are trip, trip_species, analysis_row, species, boat,
 -- landing. Everything else is derived and can be dropped and rebuilt from those

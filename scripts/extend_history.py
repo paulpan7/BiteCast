@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Extend BiteCast's embedded half-day archive with historical fish and NOAA data."""
+"""Extend FleetCast's embedded half-day archive with historical fish and NOAA data."""
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ NOAA_CACHE = CACHE / "noaa"
 CDIP_CACHE = CACHE / "cdip"
 MODEL_FREEZE_MARKER = ROOT / "data" / "validation" / "MODEL_FROZEN.json"
 BASE = "https://www.sandiegofishreports.com/dock_totals/boats.php"
-USER_AGENT = "BiteCast historical research refresh/1.0"
+USER_AGENT = "FleetCast historical research refresh/1.0"
 TIDE_STATION = "9410170"
 EXCLUDED_LANDINGS = {
     "Oceanside Sea Center",
@@ -56,7 +56,7 @@ def require_model_updates_unfrozen() -> None:
     if MODEL_FREEZE_MARKER.exists():
         freeze = json.loads(MODEL_FREEZE_MARKER.read_text(encoding="utf-8"))
         raise SystemExit(
-            "BiteCast model updates are frozen by data/validation/MODEL_FROZEN.json "
+            "FleetCast model updates are frozen by data/validation/MODEL_FROZEN.json "
             f"(training data through {freeze.get('trainingDataThrough', 'the frozen cutoff')}). "
             "Use --download-only to collect source pages without changing index.html. "
             "Do not remove the freeze until the user explicitly requests model updates to resume."
@@ -376,7 +376,7 @@ def download_tide_predictions(year: int) -> Path:
         "time_zone": "lst_ldt",
         "interval": "h",
         "units": "english",
-        "application": "BiteCast",
+        "application": "FleetCast",
         "format": "json",
     })
     payload = request_bytes(f"https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?{params}")
